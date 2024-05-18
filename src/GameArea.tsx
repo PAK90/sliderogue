@@ -42,7 +42,7 @@ const GameArea = () => {
                   position: "absolute",
                   left: tile.position.x * 80 + tile.position.x * 12,
                   top: tile.position.y * 80 + tile.position.y * 12,
-                  // transitionDelay: "200ms",
+                  transition: "top 100ms linear, left 100ms linear",
                 }}
               >
                 {tile.value}

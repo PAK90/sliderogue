@@ -48,6 +48,11 @@ export const useGameStore = create<GameState & Actions>()(
         id: "abc",
         value: 2,
       },
+      {
+        position: { x: 2, y: 2 },
+        id: "edf",
+        value: 2,
+      },
     ],
     boardHeight: 4,
     boardWidth: 4,
@@ -58,10 +63,86 @@ export const useGameStore = create<GameState & Actions>()(
 
     move: (direction: Direction) =>
       set((state) => {
-        state.tiles.forEach((tile) => {
-          tile.position.x += directionMap[direction].x;
-          tile.position.y += directionMap[direction].y;
+        // build traversals
+        const vector = directionMap[direction];
+        const traversals = buildTraversals(
+          vector,
+          state.boardWidth,
+          state.boardHeight,
+        );
+
+        // state.tiles.forEach((tile) => {
+        //   tile.position.x += vector.x;
+        //   tile.position.y += vector.y;
+        // });
+
+        traversals.x.forEach((xTrav) => {
+          traversals.y.forEach((yTrav) => {
+            const currentCell = { x: xTrav, y: yTrav };
+
+            const tileHere = state.tiles.find(
+              (t) =>
+                t.position.x === currentCell.x &&
+                t.position.y === currentCell.y,
+            );
+
+            if (tileHere) {
+              const positions = findFarthestPosition(
+                currentCell,
+                vector,
+                state.tiles,
+                state.boardWidth,
+                state.boardHeight,
+              );
+              tileHere.position = positions.farthest;
+            }
+          });
         });
       }),
   })),
 );
+
+const findFarthestPosition = (
+  cell: Coordinate,
+  vector: Coordinate,
+  tiles: Tile[],
+  width: number,
+  height: number,
+) => {
+  let previous;
+  let next = cell;
+
+  const withinBounds = (pos: Coordinate) => {
+    return pos.x >= 0 && pos.x < width && pos.y >= 0 && pos.y < height;
+  };
+  const isCellOccupied = (pos: Coordinate) => {
+    return tiles.find((t) => t.position.x === pos.x && t.position.y === pos.y);
+  };
+
+  do {
+    previous = next;
+    next = { x: previous.x + vector.x, y: previous.y + vector.y };
+  } while (withinBounds(next) && !isCellOccupied(next));
+
+  return {
+    farthest: previous,
+    next,
+  };
+};
+
+const buildTraversals = (vector: Coordinate, width: number, height: number) => {
+  const traversals: { x: number[]; y: number[] } = { x: [], y: [] };
+
+  for (let pos = 0; pos < width; pos++) {
+    traversals.x.push(pos);
+  }
+  for (let pos = 0; pos < height; pos++) {
+    traversals.y.push(pos);
+  }
+
+  // Always traverse from the farthest cell in the chosen direction
+  if (vector.x === 1) traversals.x = traversals.x.reverse();
+  if (vector.y === 1) traversals.y = traversals.y.reverse();
+
+  return traversals;
+};

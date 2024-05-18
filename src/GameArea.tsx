@@ -1,9 +1,10 @@
 import range from "./helpers/range.ts";
 import { useGameStore } from "./state";
-import React from "react";
+import React, { useEffect } from "react";
 
 const GameArea = () => {
-  const { boardWidth, boardHeight, tiles, move, score } = useGameStore();
+  const { boardWidth, boardHeight, tiles, move, score, resetGame } =
+    useGameStore();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     switch (e.key) {
@@ -36,9 +37,19 @@ const GameArea = () => {
     512: "bg-red-500",
   };
 
+  useEffect(() => {
+    resetGame();
+  }, [resetGame]);
+
   return (
     <>
       {`Score: ${score}`}
+      <button
+        className="m-1 p-0.5 rounded bg-amber-200 duration-100 hover:bg-amber-300 "
+        onClick={resetGame}
+      >
+        New Game
+      </button>
       <div
         tabIndex={0}
         onKeyDown={handleKeyDown}

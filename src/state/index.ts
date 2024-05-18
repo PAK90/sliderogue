@@ -18,7 +18,7 @@ export type Coordinate = {
 export type Tile = {
   position: Coordinate;
   value: number;
-  id: string;
+  id: number;
 };
 
 type GameState = {
@@ -32,6 +32,7 @@ type GameState = {
 type Actions = {
   // moveTile: (tile: Tile, newCoordinate: Coordinate) => void;
   move: (direction: Direction) => void;
+  resetGame: () => void;
 };
 
 export const useGameStore = create<GameState & Actions>()(
@@ -43,18 +44,7 @@ export const useGameStore = create<GameState & Actions>()(
     //     value: 2,
     //   }
     // },
-    tiles: [
-      {
-        position: { x: 0, y: 0 },
-        id: "abc",
-        value: 2,
-      },
-      {
-        position: { x: 2, y: 1 },
-        id: "eee",
-        value: 2,
-      },
-    ],
+    tiles: [],
     boardHeight: 4,
     boardWidth: 4,
     score: 0,
@@ -148,6 +138,28 @@ export const useGameStore = create<GameState & Actions>()(
           );
         }
       }),
+
+    resetGame: () => {
+      set((state) => {
+        state.score = 0;
+        state.boardWidth = 4;
+        state.boardHeight = 4;
+        state.tiles = [];
+        const tile1 = addRandomTile(
+          state.tiles,
+          state.boardWidth,
+          state.boardHeight,
+        );
+        state.tiles.push(tile1);
+
+        const tile2 = addRandomTile(
+          state.tiles,
+          state.boardWidth,
+          state.boardHeight,
+        );
+        state.tiles.push(tile2);
+      });
+    },
   })),
 );
 
@@ -172,10 +184,19 @@ const addRandomTile = (tiles: Tile[], width: number, height: number) => {
   }
 
   return {
-    id: `${Math.random()}-id`,
+    id: uniqueId(),
     value: Math.random() > 0.9 ? 4 : 2,
     position: potentialNewCellPos,
   };
+};
+
+const uniqueId = (length = 16) => {
+  return parseInt(
+    Math.ceil(Math.random() * Date.now())
+      .toPrecision(length)
+      .toString()
+      .replace(".", ""),
+  );
 };
 
 const findFarthestPosition = (

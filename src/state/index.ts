@@ -49,8 +49,18 @@ export const useGameStore = create<GameState & Actions>()(
         value: 2,
       },
       {
+        position: { x: 1, y: 1 },
+        id: "eee",
+        value: 2,
+      },
+      {
         position: { x: 2, y: 2 },
         id: "edf",
+        value: 2,
+      },
+      {
+        position: { x: 3, y: 3 },
+        id: "fer",
         value: 2,
       },
     ],
@@ -71,11 +81,6 @@ export const useGameStore = create<GameState & Actions>()(
           state.boardHeight,
         );
 
-        // state.tiles.forEach((tile) => {
-        //   tile.position.x += vector.x;
-        //   tile.position.y += vector.y;
-        // });
-
         traversals.x.forEach((xTrav) => {
           traversals.y.forEach((yTrav) => {
             const currentCell = { x: xTrav, y: yTrav };
@@ -94,7 +99,40 @@ export const useGameStore = create<GameState & Actions>()(
                 state.boardWidth,
                 state.boardHeight,
               );
-              tileHere.position = positions.farthest;
+
+              const nextPotentialTile = state.tiles.find(
+                (t) =>
+                  t.position.x === positions.next.x &&
+                  t.position.y === positions.next.y,
+              );
+
+              if (
+                nextPotentialTile &&
+                nextPotentialTile.value === tileHere.value
+              ) {
+                // move the tile that's about to be deleted so that it looks good
+                tileHere.position = positions.next;
+
+                // delete the merging tiles
+                const nextTileIx = state.tiles.findIndex(
+                  (t) => t.id === nextPotentialTile.id,
+                );
+                state.tiles.splice(nextTileIx, 1);
+
+                const hereTileIx = state.tiles.findIndex(
+                  (t) => t.id === tileHere.id,
+                );
+                state.tiles.splice(hereTileIx, 1);
+
+                // make a new tile
+                state.tiles.push({
+                  id: `${Math.random()}-id`,
+                  value: nextPotentialTile.value + tileHere.value,
+                  position: positions.next,
+                });
+              } else {
+                tileHere.position = positions.farthest;
+              }
             }
           });
         });

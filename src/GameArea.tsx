@@ -3,7 +3,7 @@ import { useGameStore } from "./state";
 import React from "react";
 
 const GameArea = () => {
-  const { boardWidth, boardHeight, tiles, move } = useGameStore();
+  const { boardWidth, boardHeight, tiles, move, score } = useGameStore();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     switch (e.key) {
@@ -24,20 +24,34 @@ const GameArea = () => {
     }
   };
 
+  const tileColourMap = {
+    2: "bg-blue-100",
+    4: "bg-blue-200",
+    8: "bg-blue-300",
+    16: "bg-purple-300",
+    32: "bg-purple-200",
+    64: "bg-red-200",
+    128: "bg-red-300",
+    256: "bg-red-400",
+    512: "bg-red-500",
+  };
+
   return (
     <>
-      Score: 2048!
+      {`Score: ${score}`}
       <div
         tabIndex={0}
         onKeyDown={handleKeyDown}
         className="w-full flex justify-center"
       >
-        <div className="w-fit flex" style={{ position: "relative" }}>
+        <div className="w-fit flex " style={{ position: "relative" }}>
           {tiles.map((tile) => {
             return (
               <div
                 key={tile.id}
-                className="w-16 h-16 bg-amber-200 rounded"
+                className={`
+                  w-16 h-16 ${tileColourMap[tile.value as keyof typeof tileColourMap]} rounded flex items-center justify-center
+                `}
                 style={{
                   position: "absolute",
                   left: tile.position.x * 80 + tile.position.x * 12,
@@ -45,7 +59,9 @@ const GameArea = () => {
                   transition: "top 100ms linear, left 100ms linear",
                 }}
               >
-                {tile.value}
+                <span className="text-gray-600 font-bold text-3xl">
+                  {tile.value}
+                </span>
               </div>
             );
           })}

@@ -26,6 +26,7 @@ type GameState = {
   tiles: Tile[];
   boardWidth: number;
   boardHeight: number;
+  score: number;
 };
 
 type Actions = {
@@ -49,23 +50,14 @@ export const useGameStore = create<GameState & Actions>()(
         value: 2,
       },
       {
-        position: { x: 1, y: 1 },
+        position: { x: 2, y: 1 },
         id: "eee",
-        value: 2,
-      },
-      {
-        position: { x: 2, y: 2 },
-        id: "edf",
-        value: 2,
-      },
-      {
-        position: { x: 3, y: 3 },
-        id: "fer",
         value: 2,
       },
     ],
     boardHeight: 4,
     boardWidth: 4,
+    score: 0,
 
     // moveTile: (tile: Tile, newCoordinate: Coordinate) => set(state => {
     //   state.tiles[tile.id].position = newCoordinate;
@@ -80,6 +72,7 @@ export const useGameStore = create<GameState & Actions>()(
           state.boardWidth,
           state.boardHeight,
         );
+        let moved = false;
 
         traversals.x.forEach((xTrav) => {
           traversals.y.forEach((yTrav) => {
@@ -119,26 +112,71 @@ export const useGameStore = create<GameState & Actions>()(
                 );
                 state.tiles.splice(nextTileIx, 1);
 
-                const hereTileIx = state.tiles.findIndex(
-                  (t) => t.id === tileHere.id,
-                );
-                state.tiles.splice(hereTileIx, 1);
+                // const hereTileIx = state.tiles.findIndex(
+                //   (t) => t.id === tileHere.id,
+                // );
+                // state.tiles.splice(hereTileIx, 1);
 
                 // make a new tile
-                state.tiles.push({
-                  id: `${Math.random()}-id`,
-                  value: nextPotentialTile.value + tileHere.value,
-                  position: positions.next,
-                });
+                // state.tiles.push({
+                //   id: `${Math.random()}-id`,
+                //   value: nextPotentialTile.value + tileHere.value,
+                //   position: positions.next,
+                // });
+                tileHere.position = positions.next;
+                tileHere.value = nextPotentialTile.value + tileHere.value;
+
+                // update the score
+                state.score += tileHere.value;
               } else {
                 tileHere.position = positions.farthest;
+              }
+              if (
+                tileHere.position.x !== currentCell.x ||
+                tileHere.position.y !== currentCell.y
+              ) {
+                moved = true;
               }
             }
           });
         });
+
+        if (moved) {
+          // add a random tile
+          state.tiles.push(
+            addRandomTile(state.tiles, state.boardWidth, state.boardHeight),
+          );
+        }
       }),
   })),
 );
+
+const addRandomTile = (tiles: Tile[], width: number, height: number) => {
+  // FIXME; this is awful
+  let potentialNewCellPos = {
+    x: Math.floor(Math.random() * width),
+    y: Math.floor(Math.random() * height),
+  };
+
+  while (
+    tiles.find(
+      (t) =>
+        t.position.x === potentialNewCellPos.x &&
+        t.position.y === potentialNewCellPos.y,
+    )
+  ) {
+    potentialNewCellPos = {
+      x: Math.floor(Math.random() * width),
+      y: Math.floor(Math.random() * height),
+    };
+  }
+
+  return {
+    id: `${Math.random()}-id`,
+    value: Math.random() > 0.9 ? 4 : 2,
+    position: potentialNewCellPos,
+  };
+};
 
 const findFarthestPosition = (
   cell: Coordinate,

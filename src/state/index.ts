@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import chooseWeightedOption from "../helpers/chooseWeightedOption.ts";
 
 type Direction = "up" | "down" | "left" | "right";
 
@@ -17,7 +18,7 @@ export type Coordinate = {
 
 export type Tile = {
   position: Coordinate;
-  value: number;
+  value: number | string;
   id: number;
 };
 
@@ -114,10 +115,19 @@ export const useGameStore = create<GameState & Actions>()(
                 //   position: positions.next,
                 // });
                 tileHere.position = positions.next;
-                tileHere.value = nextPotentialTile.value + tileHere.value;
+                if (
+                  typeof nextPotentialTile.value === "number" &&
+                  typeof tileHere.value === "number"
+                ) {
+                  tileHere.value = nextPotentialTile.value + tileHere.value;
 
-                // update the score
-                state.score += tileHere.value;
+                  // update the score
+                  state.score += tileHere.value;
+                } else {
+                  tileHere.value =
+                    nextPotentialTile.value.toString() +
+                    tileHere.value.toString();
+                }
               } else {
                 tileHere.position = positions.farthest;
               }
@@ -183,9 +193,15 @@ const addRandomTile = (tiles: Tile[], width: number, height: number) => {
     };
   }
 
+  const tileOptions = [
+    { id: 2, weight: 80 },
+    { id: 4, weight: 10 },
+    { id: "$", weight: 3 },
+  ];
+
   return {
     id: uniqueId(),
-    value: Math.random() > 0.9 ? 4 : 2,
+    value: chooseWeightedOption(tileOptions),
     position: potentialNewCellPos,
   };
 };

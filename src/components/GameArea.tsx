@@ -3,6 +3,7 @@ import { useGameStore } from "../state";
 import React, { useEffect } from "react";
 import TileRender from "./TileRender.tsx";
 import { useSwipeable } from "react-swipeable";
+import ShopDialog from "./ShopDialog.tsx";
 
 const GameArea = () => {
   const { boardWidth, boardHeight, tiles, move, score, resetGame } =
@@ -40,9 +41,13 @@ const GameArea = () => {
     resetGame();
   }, [resetGame]);
 
+  // NB for the arrangement of the nested range div renderings;
+  // apparently margins collapse in the vertical but not horizontal,
+  // so here we render it row by row instead of column by column as in roguesweeper.
   return (
     <div className="h-full" {...handlers}>
       {`Score: ${score}`}
+      <ShopDialog />
       <button
         className="m-1 p-0.5 rounded bg-amber-200 duration-100 hover:bg-amber-300 "
         onClick={resetGame}
@@ -54,14 +59,17 @@ const GameArea = () => {
         onKeyDown={handleKeyDown}
         className="w-full flex justify-center"
       >
-        <div className="w-fit flex " style={{ position: "relative" }}>
+        <div
+          className="w-full bg-gray-400 p-1"
+          style={{ position: "relative" }}
+        >
           {tiles.map((tile, index) => (
             <TileRender tile={tile} key={index} />
           ))}
-          {range(boardWidth).map((_, rIx) => {
+          {range(boardHeight).map((_, rIx) => {
             return (
-              <div key={`${rIx}`}>
-                {range(boardHeight).map((_, cIx) => {
+              <div key={`${rIx}`} className="flex">
+                {range(boardWidth).map((_, cIx) => {
                   return (
                     <div
                       key={`${rIx}${cIx}`}

@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import chooseWeightedOption from "../helpers/chooseWeightedOption.ts";
+import { Upgrade } from "../upgrades.ts";
+// import {WritableDraft} from "immer";
 
 type Direction = "up" | "down" | "left" | "right";
 
@@ -22,18 +24,23 @@ export type Tile = {
   id: number;
 };
 
-type GameState = {
+export type GameState = {
   // tiles: { [key: string]: Tile };
   tiles: Tile[];
   boardWidth: number;
   boardHeight: number;
   score: number;
+
+  shopping: { tileId: number; tier: string } | null;
 };
 
-type Actions = {
+export type Actions = {
   // moveTile: (tile: Tile, newCoordinate: Coordinate) => void;
   move: (direction: Direction) => void;
   resetGame: () => void;
+  openShopping: (tier: string, tileId: number) => void;
+  closeShopping: () => void;
+  applyUpgrade: (u: Upgrade) => void;
 };
 
 export const useGameStore = create<GameState & Actions>()(
@@ -49,10 +56,31 @@ export const useGameStore = create<GameState & Actions>()(
     boardHeight: 4,
     boardWidth: 4,
     score: 0,
+    shopping: null,
 
     // moveTile: (tile: Tile, newCoordinate: Coordinate) => set(state => {
     //   state.tiles[tile.id].position = newCoordinate;
     // }),
+
+    applyUpgrade: (upgrade: Upgrade) =>
+      set((state) => {
+        state = upgrade.stateUpdater(state);
+        state.score -= upgrade.cost;
+      }),
+
+    openShopping: (tier: string, tileId: number) =>
+      set((state) => {
+        state.shopping = { tier, tileId };
+      }),
+
+    closeShopping: () =>
+      set((state) => {
+        const tileIndexToRemove = state.tiles.findIndex(
+          (t) => t.id === state.shopping?.tileId,
+        );
+        state.tiles.splice(tileIndexToRemove, 1);
+        state.shopping = null;
+      }),
 
     move: (direction: Direction) =>
       set((state) => {
@@ -196,7 +224,7 @@ const addRandomTile = (tiles: Tile[], width: number, height: number) => {
   const tileOptions = [
     { id: 2, weight: 80 },
     { id: 4, weight: 10 },
-    { id: "$", weight: 3 },
+    { id: "$", weight: 5 },
   ];
 
   return {

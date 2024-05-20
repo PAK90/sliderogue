@@ -46,15 +46,17 @@ const GameArea = () => {
   // so here we render it row by row instead of column by column as in roguesweeper.
   return (
     <div className="h-full" {...handlers}>
-      {`Score: ${score}`}
-      {`Gold: ${gold}`}
       <ShopDialog />
-      <button
-        className="m-1 p-0.5 rounded bg-amber-200 duration-100 hover:bg-amber-300 "
-        onClick={resetGame}
-      >
-        New Game
-      </button>
+      <div className="flex">
+        <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}`}</div>
+        <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${gold}`}</div>
+        <button
+          className="m-1 p-0.5 rounded bg-green-200 duration-100 hover:bg-amber-300 "
+          onClick={resetGame}
+        >
+          New Game
+        </button>
+      </div>
       <div
         tabIndex={0}
         onKeyDown={handleKeyDown}
@@ -64,8 +66,8 @@ const GameArea = () => {
           className="w-full bg-gray-400 p-1"
           style={{ position: "relative" }}
         >
-          {tiles.map((tile, index) => (
-            <TileRender tile={tile} key={index} />
+          {tiles.map((tile) => (
+            <TileRender tile={tile} key={tile.id} />
           ))}
           {range(boardHeight).map((_, rIx) => {
             return (

@@ -27,9 +27,10 @@ const TileRender = ({ tile }: { tile: Tile }) => {
   return (
     <div
       onClick={handleTileClick}
-      key={tile.id}
       className={`
-                  w-20 h-20 ${tileColourMap[tile.value as keyof typeof tileColourMap]} rounded flex items-center justify-center
+                  w-20 h-20 ${tileColourMap[tile.value as keyof typeof tileColourMap]} 
+                  rounded flex items-center justify-center
+                  animate-growIn
                 `}
       style={{
         position: "absolute",

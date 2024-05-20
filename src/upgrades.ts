@@ -1,6 +1,6 @@
 import { WritableDraft } from "immer";
 import { Actions, GameState, Tile } from "./state";
-import { div2Tile, tile8 } from "./tiles.ts";
+import { tile8 } from "./tiles.ts";
 
 export type Upgrade = {
   name: string;

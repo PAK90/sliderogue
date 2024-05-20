@@ -1,5 +1,5 @@
 import { WritableDraft } from "immer";
-import { Actions, GameState } from "./state";
+import { Actions, GameState, Tile } from "./state";
 
 export type Upgrade = {
   name: string;
@@ -19,8 +19,8 @@ const widthUpgrade: Upgrade = {
     state.boardWidth++;
     return state;
   },
-  cost: 200,
-  tier: 1,
+  cost: 4,
+  tier: 2,
   weight: 100,
 };
 
@@ -31,9 +31,43 @@ const heightUpgrade: Upgrade = {
     state.boardHeight++;
     return state;
   },
-  cost: 200,
+  cost: 4,
+  tier: 2,
+  weight: 100,
+};
+
+const shuffle: Upgrade = {
+  name: "Shuffle",
+  description: "Randomises all the tile positions",
+  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+    const randomTiles: Tile[] = [];
+
+    state.tiles.forEach((tile) => {
+      let potentialNewCellPos = {
+        x: Math.floor(Math.random() * state.boardWidth),
+        y: Math.floor(Math.random() * state.boardHeight),
+      };
+      while (
+        randomTiles.find(
+          (t) =>
+            t.position.x === potentialNewCellPos.x &&
+            t.position.y === potentialNewCellPos.y,
+        )
+      ) {
+        potentialNewCellPos = {
+          x: Math.floor(Math.random() * state.boardWidth),
+          y: Math.floor(Math.random() * state.boardHeight),
+        };
+      }
+
+      randomTiles.push({ ...tile, position: potentialNewCellPos });
+    });
+    state.tiles = randomTiles;
+    return state;
+  },
+  cost: 2,
   tier: 1,
   weight: 100,
 };
 
-export const upgrades = [widthUpgrade, heightUpgrade];
+export const upgrades = [widthUpgrade, heightUpgrade, shuffle];

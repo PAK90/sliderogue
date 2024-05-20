@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import chooseWeightedOption from "../helpers/chooseWeightedOption.ts";
+// import chooseWeightedOption from "../helpers/chooseWeightedOption.ts";
 import { Upgrade } from "../upgrades.ts";
-// import {WritableDraft} from "immer";
+import { addRandomTile } from "../helpers/addRandomTile.ts";
 
 type Direction = "up" | "down" | "left" | "right";
 
@@ -30,12 +30,12 @@ export type GameState = {
   boardWidth: number;
   boardHeight: number;
   score: number;
+  gold: number;
 
   shopping: { tileId: number; tier: string } | null;
 };
 
 export type Actions = {
-  // moveTile: (tile: Tile, newCoordinate: Coordinate) => void;
   move: (direction: Direction) => void;
   resetGame: () => void;
   openShopping: (tier: string, tileId: number) => void;
@@ -45,27 +45,17 @@ export type Actions = {
 
 export const useGameStore = create<GameState & Actions>()(
   immer((set) => ({
-    // tiles: {
-    //   'abc': {
-    //     position: {x: 0, y: 0},
-    //     id: 'abc',
-    //     value: 2,
-    //   }
-    // },
     tiles: [],
     boardHeight: 4,
     boardWidth: 4,
     score: 0,
+    gold: 0,
     shopping: null,
-
-    // moveTile: (tile: Tile, newCoordinate: Coordinate) => set(state => {
-    //   state.tiles[tile.id].position = newCoordinate;
-    // }),
 
     applyUpgrade: (upgrade: Upgrade) =>
       set((state) => {
         state = upgrade.stateUpdater(state);
-        state.score -= upgrade.cost;
+        state.gold -= upgrade.cost;
       }),
 
     openShopping: (tier: string, tileId: number) =>
@@ -152,9 +142,13 @@ export const useGameStore = create<GameState & Actions>()(
                   // update the score
                   state.score += tileHere.value;
                 } else {
+                  // we're assuming it's just the $ tiles here for now
                   tileHere.value =
                     nextPotentialTile.value.toString() +
                     tileHere.value.toString();
+
+                  // add gold equal to the amount of $$ signs combined
+                  state.gold += tileHere.value.length;
                 }
               } else {
                 tileHere.position = positions.farthest;
@@ -180,6 +174,7 @@ export const useGameStore = create<GameState & Actions>()(
     resetGame: () => {
       set((state) => {
         state.score = 0;
+        state.gold = 0;
         state.boardWidth = 4;
         state.boardHeight = 4;
         state.tiles = [];
@@ -200,48 +195,6 @@ export const useGameStore = create<GameState & Actions>()(
     },
   })),
 );
-
-const addRandomTile = (tiles: Tile[], width: number, height: number) => {
-  // FIXME; this is awful
-  let potentialNewCellPos = {
-    x: Math.floor(Math.random() * width),
-    y: Math.floor(Math.random() * height),
-  };
-
-  while (
-    tiles.find(
-      (t) =>
-        t.position.x === potentialNewCellPos.x &&
-        t.position.y === potentialNewCellPos.y,
-    )
-  ) {
-    potentialNewCellPos = {
-      x: Math.floor(Math.random() * width),
-      y: Math.floor(Math.random() * height),
-    };
-  }
-
-  const tileOptions = [
-    { id: 2, weight: 80 },
-    { id: 4, weight: 10 },
-    { id: "$", weight: 5 },
-  ];
-
-  return {
-    id: uniqueId(),
-    value: chooseWeightedOption(tileOptions),
-    position: potentialNewCellPos,
-  };
-};
-
-const uniqueId = (length = 16) => {
-  return parseInt(
-    Math.ceil(Math.random() * Date.now())
-      .toPrecision(length)
-      .toString()
-      .replace(".", ""),
-  );
-};
 
 const findFarthestPosition = (
   cell: Coordinate,

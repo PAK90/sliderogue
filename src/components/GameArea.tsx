@@ -6,7 +6,7 @@ import { useSwipeable } from "react-swipeable";
 import ShopDialog from "./ShopDialog.tsx";
 
 const GameArea = () => {
-  const { boardWidth, boardHeight, tiles, move, score, resetGame } =
+  const { boardWidth, boardHeight, tiles, move, score, gold, resetGame } =
     useGameStore();
 
   const handlers = useSwipeable({
@@ -47,6 +47,7 @@ const GameArea = () => {
   return (
     <div className="h-full" {...handlers}>
       {`Score: ${score}`}
+      {`Gold: ${gold}`}
       <ShopDialog />
       <button
         className="m-1 p-0.5 rounded bg-amber-200 duration-100 hover:bg-amber-300 "

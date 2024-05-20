@@ -51,7 +51,7 @@ const GameArea = () => {
         <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}`}</div>
         <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${gold}`}</div>
         <button
-          className="m-1 p-0.5 rounded bg-green-200 duration-100 hover:bg-amber-300 "
+          className="m-1 p-0.5 rounded bg-green-200 duration-100 hover:bg-green-300 "
           onClick={resetGame}
         >
           New Game

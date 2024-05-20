@@ -16,10 +16,15 @@ const TileRender = ({ tile }: { tile: Tile }) => {
     512: "bg-red-500",
   };
 
-  const { openShopping } = useGameStore();
+  const { openShopping, gold } = useGameStore();
 
   const handleTileClick = () => {
-    if (typeof tile.value === "string" && tile.value.indexOf("$") > -1) {
+    // only allow opening of the store when player has gold, to prevent just getting rid of the tiles
+    if (
+      typeof tile.value === "string" &&
+      tile.value.indexOf("$") > -1 &&
+      gold > 0
+    ) {
       openShopping(tile.value, tile.id);
     }
   };
@@ -31,6 +36,7 @@ const TileRender = ({ tile }: { tile: Tile }) => {
                   w-20 h-20 ${tileColourMap[tile.value as keyof typeof tileColourMap]} 
                   rounded flex items-center justify-center
                   animate-growIn
+                  ${tile.value.toString().indexOf("$") > -1 && "cursor-pointer"}
                 `}
       style={{
         position: "absolute",

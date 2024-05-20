@@ -2,7 +2,12 @@ import { uniqueId } from "./uniqueId.ts";
 import chooseWeightedOption from "./chooseWeightedOption.ts";
 import { Tile } from "../state";
 
-export const addRandomTile = (tiles: Tile[], width: number, height: number) => {
+export const addRandomTile = (
+  tiles: Tile[],
+  width: number,
+  height: number,
+  tileOptions: { id: string | number; weight: number }[],
+) => {
   // FIXME; this is awful
   let potentialNewCellPos = {
     x: Math.floor(Math.random() * width),
@@ -21,12 +26,6 @@ export const addRandomTile = (tiles: Tile[], width: number, height: number) => {
       y: Math.floor(Math.random() * height),
     };
   }
-
-  const tileOptions = [
-    { id: 2, weight: 80 },
-    { id: 4, weight: 10 },
-    { id: "$", weight: 5 },
-  ];
 
   return {
     id: uniqueId(),

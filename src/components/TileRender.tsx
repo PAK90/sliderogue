@@ -39,6 +39,7 @@ const TileRender = ({ tile }: { tile: Tile }) => {
                   ${tile.value.toString().indexOf("$") > -1 && "cursor-pointer"}
                 `}
       style={{
+        transformStyle: "preserve-3d",
         position: "absolute",
         left: tile.position.x * 80 + 8 + tile.position.x * 8,
         top: tile.position.y * 80 + 8 + tile.position.y * 8,

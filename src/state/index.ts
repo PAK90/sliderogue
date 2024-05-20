@@ -3,6 +3,7 @@ import { immer } from "zustand/middleware/immer";
 // import chooseWeightedOption from "../helpers/chooseWeightedOption.ts";
 import { Upgrade } from "../upgrades.ts";
 import { addRandomTile } from "../helpers/addRandomTile.ts";
+import { defaultTiles } from "../tiles.ts";
 
 type Direction = "up" | "down" | "left" | "right";
 
@@ -33,6 +34,7 @@ export type GameState = {
   gold: number;
 
   shopping: { tileId: number; tier: string } | null;
+  tilesToSpawn: { id: number | string; weight: number }[];
 };
 
 export type Actions = {
@@ -51,6 +53,7 @@ export const useGameStore = create<GameState & Actions>()(
     score: 0,
     gold: 0,
     shopping: null,
+    tilesToSpawn: defaultTiles,
 
     applyUpgrade: (upgrade: Upgrade) =>
       set((state) => {
@@ -166,7 +169,12 @@ export const useGameStore = create<GameState & Actions>()(
         if (moved) {
           // add a random tile
           state.tiles.push(
-            addRandomTile(state.tiles, state.boardWidth, state.boardHeight),
+            addRandomTile(
+              state.tiles,
+              state.boardWidth,
+              state.boardHeight,
+              state.tilesToSpawn,
+            ),
           );
         }
       }),
@@ -178,10 +186,12 @@ export const useGameStore = create<GameState & Actions>()(
         state.boardWidth = 4;
         state.boardHeight = 4;
         state.tiles = [];
+        state.tilesToSpawn = defaultTiles;
         const tile1 = addRandomTile(
           state.tiles,
           state.boardWidth,
           state.boardHeight,
+          state.tilesToSpawn,
         );
         state.tiles.push(tile1);
 
@@ -189,6 +199,7 @@ export const useGameStore = create<GameState & Actions>()(
           state.tiles,
           state.boardWidth,
           state.boardHeight,
+          state.tilesToSpawn,
         );
         state.tiles.push(tile2);
       });

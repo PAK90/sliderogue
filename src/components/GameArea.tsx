@@ -45,7 +45,12 @@ const GameArea = () => {
   // apparently margins collapse in the vertical but not horizontal,
   // so here we render it row by row instead of column by column as in roguesweeper.
   return (
-    <div className="h-full" {...handlers}>
+    <div
+      className="h-full"
+      {...handlers}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
       <ShopDialog />
       <div className="flex">
         <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}`}</div>
@@ -57,11 +62,7 @@ const GameArea = () => {
           New Game
         </button>
       </div>
-      <div
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
-        className="w-full flex justify-center"
-      >
+      <div className="w-full flex justify-center">
         <div
           className="w-full bg-gray-400 p-1"
           style={{ position: "relative" }}

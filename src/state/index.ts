@@ -3,7 +3,8 @@ import { immer } from "zustand/middleware/immer";
 // import chooseWeightedOption from "../helpers/chooseWeightedOption.ts";
 import { Upgrade } from "../upgrades.ts";
 import { addRandomTile } from "../helpers/addRandomTile.ts";
-import { defaultTiles } from "../tiles.ts";
+import { defaultTiles, div2Tile, x2Tile } from "../tiles.ts";
+// import range from "../helpers/range.ts";
 
 type Direction = "up" | "down" | "left" | "right";
 
@@ -113,7 +114,7 @@ export const useGameStore = create<GameState & Actions>()(
 
               if (
                 nextPotentialTile &&
-                nextPotentialTile.value === tileHere.value
+                tilesCanMerge(tileHere, nextPotentialTile)
               ) {
                 // move the tile that's about to be deleted so that it looks good
                 tileHere.position = positions.next;
@@ -206,6 +207,41 @@ export const useGameStore = create<GameState & Actions>()(
     },
   })),
 );
+
+const tilesCanMerge = (t1: Tile, t2: Tile) => {
+  const specialTileIds = [div2Tile, x2Tile].map((t) => t.id);
+  if (
+    specialTileIds.includes(t1.value.toString()) ||
+    specialTileIds.includes(t2.value.toString())
+  ) {
+    return true;
+  } else if (t1.value === t2.value) return true;
+  return false;
+};
+
+// const calculateNewValue = (t1: Tile, t2: Tile) => {
+//   const specialTileIds = [div2Tile, x2Tile].map((t) => t.id);
+//
+//   if (typeof t1.value === "number" && typeof t2.value === "number") {
+//     return t1.value + t2.value;
+//   } else if (specialTileIds.includes(t1.value.toString())) {
+//     if (t2.value.toString().indexOf("$") > -1) {
+//       return t1.value === "x2"
+//         ? t2.value.toString() + t2.value.toString()
+//         : range(t2.value.toString().length / 2, "$");
+//     } else {
+//       return t1.value === "x2" ? t2.value * 2 : t2.value / 2;
+//     }
+//   } else if (specialTileIds.includes(t2.value.toString())) {
+//     if (t1.value.toString().indexOf("$") > -1) {
+//       return t2.value === "x2"
+//         ? t1.value.toString() + t2.value.toString()
+//         : range(t2.value.toString().length / 2, "$");
+//     } else {
+//       return t2.value === "x2" ? t1.value * 2 : t1.value / 2;
+//     }
+//   }
+// };
 
 const findFarthestPosition = (
   cell: Coordinate,

@@ -1,5 +1,6 @@
 import { WritableDraft } from "immer";
 import { Actions, GameState, Tile } from "./state";
+import { div2Tile, tile8 } from "./tiles.ts";
 
 export type Upgrade = {
   name: string;
@@ -70,4 +71,44 @@ const shuffle: Upgrade = {
   weight: 100,
 };
 
-export const upgrades = [widthUpgrade, heightUpgrade, shuffle];
+const addEightTile: Upgrade = {
+  name: "8-Tile",
+  description: "Adds a chance to spawn an 8 tile",
+  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+    const found8Tile = state.tilesToSpawn.find((ts) => ts.id === 8);
+    if (found8Tile) {
+      found8Tile.weight += tile8.weight;
+    } else {
+      state.tilesToSpawn.push(tile8);
+    }
+    return state;
+  },
+  cost: 2,
+  tier: 1,
+  weight: 100,
+};
+
+const addDivTwoTile: Upgrade = {
+  name: "÷2 Tile",
+  description: "Adds a chance to spawn a ÷2 tile",
+  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+    const foundDiv2Tile = state.tilesToSpawn.find((ts) => ts.id === "÷2");
+    if (foundDiv2Tile) {
+      foundDiv2Tile.weight += div2Tile.weight;
+    } else {
+      state.tilesToSpawn.push(div2Tile);
+    }
+    return state;
+  },
+  cost: 2,
+  tier: 1,
+  weight: 100,
+};
+
+export const upgrades = [
+  addEightTile,
+  addDivTwoTile,
+  widthUpgrade,
+  heightUpgrade,
+  shuffle,
+];

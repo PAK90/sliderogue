@@ -6,8 +6,17 @@ import { useSwipeable } from "react-swipeable";
 import ShopDialog from "./ShopDialog.tsx";
 
 const GameArea = () => {
-  const { boardWidth, boardHeight, tiles, move, score, gold, resetGame } =
-    useGameStore();
+  const {
+    boardWidth,
+    boardHeight,
+    // tilesToSpawn,
+    // setTilesToSpawn,
+    tiles,
+    move,
+    score,
+    gold,
+    resetGame,
+  } = useGameStore();
 
   const handlers = useSwipeable({
     onSwiped: (eventData) => console.log("User Swiped!", eventData),
@@ -44,6 +53,7 @@ const GameArea = () => {
   // NB for the arrangement of the nested range div renderings;
   // apparently margins collapse in the vertical but not horizontal,
   // so here we render it row by row instead of column by column as in roguesweeper.
+  console.log("tiles spawning: ", tiles);
   return (
     <div
       className="h-full"
@@ -51,6 +61,11 @@ const GameArea = () => {
       tabIndex={0}
       onKeyDown={handleKeyDown}
     >
+      {/*{tilesToSpawn*/}
+      {/*  .filter((t) => t.type === "WEAPON")*/}
+      {/*  .map((option) => {*/}
+      {/*    return <div>{option.id}</div>;*/}
+      {/*  })}*/}
       <ShopDialog />
       <div className="flex">
         <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}`}</div>

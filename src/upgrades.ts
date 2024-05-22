@@ -1,6 +1,6 @@
 import { WritableDraft } from "immer";
 import { Actions, GameState, Tile } from "./state";
-import { tile8 } from "./tiles.ts";
+// import { tile8 } from "./tiles.ts";
 
 export type Upgrade = {
   name: string;
@@ -71,37 +71,37 @@ const shuffle: Upgrade = {
   weight: 100,
 };
 
-const addEightTile: Upgrade = {
-  name: "8-Tile",
-  description: "Adds a chance to spawn an 8 tile",
-  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
-    const found8Tile = state.tilesToSpawn.find((ts) => ts.id === 8);
-    if (found8Tile) {
-      found8Tile.weight += tile8.weight;
-    } else {
-      state.tilesToSpawn.push(tile8);
-    }
-    return state;
-  },
-  cost: 2,
-  tier: 1,
-  weight: 100,
-};
+// const addEightTile: Upgrade = {
+//   name: "8-Tile",
+//   description: "Adds a chance to spawn an 8 tile",
+//   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+//     const found8Tile = state.tilesToSpawn.find((ts) => ts.id === 8);
+//     if (found8Tile) {
+//       found8Tile.weight += tile8.weight;
+//     } else {
+//       state.tilesToSpawn.push(tile8);
+//     }
+//     return state;
+//   },
+//   cost: 2,
+//   tier: 1,
+//   weight: 100,
+// };
 
-const upgradeShopTile: Upgrade = {
-  name: "Frequent Shopper",
-  description: "Increases the chance to spawn a $ tile",
-  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
-    const found8Tile = state.tilesToSpawn.find((ts) => ts.id === "$");
-    if (found8Tile) {
-      found8Tile.weight += tile8.weight;
-    }
-    return state;
-  },
-  cost: 4,
-  tier: 1,
-  weight: 100,
-};
+// const upgradeShopTile: Upgrade = {
+//   name: "Frequent Shopper",
+//   description: "Increases the chance to spawn a $ tile",
+//   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+//     const found8Tile = state.tilesToSpawn.find((ts) => ts.id === "$");
+//     if (found8Tile) {
+//       found8Tile.weight += .weight;
+//     }
+//     return state;
+//   },
+//   cost: 4,
+//   tier: 1,
+//   weight: 100,
+// };
 
 // const addDivTwoTile: Upgrade = {
 //   name: "÷2 Tile",
@@ -121,10 +121,10 @@ const upgradeShopTile: Upgrade = {
 // };
 
 export const upgrades = [
-  addEightTile,
+  // addEightTile,
   // addDivTwoTile,
   widthUpgrade,
   heightUpgrade,
-  upgradeShopTile,
+  // upgradeShopTile,
   shuffle,
 ];

@@ -3,7 +3,9 @@ import { immer } from "zustand/middleware/immer";
 // import chooseWeightedOption from "../helpers/chooseWeightedOption.ts";
 import { Upgrade } from "../upgrades.ts";
 import { addRandomTile } from "../helpers/addRandomTile.ts";
-import { defaultTiles, div2Tile, x2Tile } from "../tiles.ts";
+// import { defaultTiles } from "../tiles.ts";
+import { Option } from "../helpers/chooseWeightedOption.ts";
+import { swordTile, zombieTile } from "../tiles.ts";
 // import range from "../helpers/range.ts";
 
 type Direction = "up" | "down" | "left" | "right";
@@ -20,10 +22,14 @@ export type Coordinate = {
   y: number;
 };
 
+export type TileType = "WEAPON" | "ENEMY" | "NUMBER";
+
 export type Tile = {
   position: Coordinate;
-  value: number | string;
+  value: number;
+  name: string;
   id: number;
+  type: TileType;
 };
 
 export type GameState = {
@@ -35,7 +41,7 @@ export type GameState = {
   gold: number;
 
   shopping: { tileId: number; tier: string } | null;
-  tilesToSpawn: { id: number | string; weight: number }[];
+  tilesToSpawn: Option[];
 };
 
 export type Actions = {
@@ -44,17 +50,23 @@ export type Actions = {
   openShopping: (tier: string, tileId: number) => void;
   closeShopping: () => void;
   applyUpgrade: (u: Upgrade) => void;
+  setTilesToSpawn: (t: Option[]) => void;
 };
 
 export const useGameStore = create<GameState & Actions>()(
   immer((set) => ({
     tiles: [],
-    boardHeight: 4,
-    boardWidth: 4,
+    boardHeight: 5,
+    boardWidth: 5,
     score: 0,
     gold: 0,
     shopping: null,
-    tilesToSpawn: defaultTiles,
+    tilesToSpawn: [],
+
+    setTilesToSpawn: (o: Option[]) =>
+      set((state) => {
+        state.tilesToSpawn = o;
+      }),
 
     applyUpgrade: (upgrade: Upgrade) =>
       set((state) => {
@@ -85,7 +97,7 @@ export const useGameStore = create<GameState & Actions>()(
           state.boardWidth,
           state.boardHeight,
         );
-        let moved = false;
+        // let moved = false;
 
         traversals.x.forEach((xTrav) => {
           traversals.y.forEach((yTrav) => {
@@ -114,7 +126,8 @@ export const useGameStore = create<GameState & Actions>()(
 
               if (
                 nextPotentialTile &&
-                tilesCanMerge(tileHere, nextPotentialTile)
+                // tilesCanMerge(tileHere, nextPotentialTile)
+                tileHere.name === nextPotentialTile.name
               ) {
                 // move the tile that's about to be deleted so that it looks good
                 tileHere.position = positions.next;
@@ -125,99 +138,115 @@ export const useGameStore = create<GameState & Actions>()(
                 );
                 state.tiles.splice(nextTileIx, 1);
 
-                // const hereTileIx = state.tiles.findIndex(
-                //   (t) => t.id === tileHere.id,
-                // );
-                // state.tiles.splice(hereTileIx, 1);
-
-                // make a new tile
-                // state.tiles.push({
-                //   id: `${Math.random()}-id`,
-                //   value: nextPotentialTile.value + tileHere.value,
-                //   position: positions.next,
-                // });
                 tileHere.position = positions.next;
-                if (
-                  typeof nextPotentialTile.value === "number" &&
-                  typeof tileHere.value === "number"
-                ) {
-                  tileHere.value = nextPotentialTile.value + tileHere.value;
+                tileHere.value = nextPotentialTile.value + tileHere.value;
 
-                  // update the score
-                  state.score += tileHere.value;
-                } else {
-                  // we're assuming it's just the $ tiles here for now
-                  tileHere.value =
-                    nextPotentialTile.value.toString() +
-                    tileHere.value.toString();
+                // update the score
+                state.score += tileHere.value;
+              } else if (
+                nextPotentialTile &&
+                nextPotentialTile.type === "ENEMY" &&
+                tileHere.type === "WEAPON"
+              ) {
+                // we have a weapon hitting an enemy; do damage
+                tileHere.position = positions.farthest;
+                nextPotentialTile.value -= tileHere.value;
 
-                  // add gold equal to the amount of $$ signs combined
-                  state.gold += tileHere.value.length;
+                // also self-damage the weapon by 1
+                tileHere.value -= 1;
+
+                // delete the hit tile if its value is below 0.
+                if (nextPotentialTile.value <= 0) {
+                  const nextTileIx = state.tiles.findIndex(
+                    (t) => t.id === nextPotentialTile.id,
+                  );
+                  state.tiles.splice(nextTileIx, 1);
+                } // delete the hiting tile if its value is below 0.
+                if (tileHere.value <= 0) {
+                  const tileHereIx = state.tiles.findIndex(
+                    (t) => t.id === tileHere.id,
+                  );
+                  state.tiles.splice(tileHereIx, 1);
                 }
               } else {
+                // no tile collision, just move the current tile along.
                 tileHere.position = positions.farthest;
               }
               if (
                 tileHere.position.x !== currentCell.x ||
                 tileHere.position.y !== currentCell.y
               ) {
-                moved = true;
+                // moved = true;
               }
             }
           });
         });
 
-        if (moved) {
-          // add a random tile
-          state.tiles.push(
-            addRandomTile(
-              state.tiles,
-              state.boardWidth,
-              state.boardHeight,
-              state.tilesToSpawn,
-            ),
-          );
-        }
+        // if (moved) {
+        //   // add a random tile
+        //   state.tiles.push(
+        //     addRandomTile(
+        //       state.tiles,
+        //       state.boardWidth,
+        //       state.boardHeight,
+        //       state.tilesToSpawn,
+        //     ),
+        //   );
+        // }
       }),
 
     resetGame: () => {
       set((state) => {
         state.score = 0;
         state.gold = 0;
-        state.boardWidth = 4;
-        state.boardHeight = 4;
+        state.boardWidth = 5;
+        state.boardHeight = 5;
         state.tiles = [];
-        state.tilesToSpawn = defaultTiles;
-        const tile1 = addRandomTile(
-          state.tiles,
-          state.boardWidth,
-          state.boardHeight,
-          state.tilesToSpawn,
-        );
-        state.tiles.push(tile1);
-
-        const tile2 = addRandomTile(
-          state.tiles,
-          state.boardWidth,
-          state.boardHeight,
-          state.tilesToSpawn,
-        );
-        state.tiles.push(tile2);
+        state.tilesToSpawn = [
+          { ...zombieTile, value: 4 },
+          { ...zombieTile, value: 4 },
+          { ...zombieTile, value: 4 },
+          { ...zombieTile, value: 4 },
+          { ...swordTile, value: 4 },
+          swordTile,
+        ];
+        // const tile1 = addRandomTile(
+        //   state.tiles,
+        //   state.boardWidth,
+        //   state.boardHeight,
+        //   state.tilesToSpawn,
+        // );
+        // state.tiles.push(tile1);
+        //
+        // const tile2 = addRandomTile(
+        //   state.tiles,
+        //   state.boardWidth,
+        //   state.boardHeight,
+        //   state.tilesToSpawn,
+        // );
+        const tilesToAdd = state.tilesToSpawn.reduce((tta, option) => {
+          tta.push(
+            // @ts-expect-error stupid never
+            addRandomTile(tta, state.boardWidth, state.boardHeight, [option]),
+          );
+          return tta;
+        }, []);
+        state.tiles = state.tiles.concat(tilesToAdd);
       });
     },
   })),
 );
 
-const tilesCanMerge = (t1: Tile, t2: Tile) => {
-  const specialTileIds = [div2Tile, x2Tile].map((t) => t.id);
-  if (
-    specialTileIds.includes(t1.value.toString()) ||
-    specialTileIds.includes(t2.value.toString())
-  ) {
-    return true;
-  } else if (t1.value === t2.value) return true;
-  return false;
-};
+// const tilesCanMerge = (t1: Tile, t2: Tile) => {
+//   const specialTileIds = [div2Tile, x2Tile].map((t) => t.id);
+//   if (
+//     specialTileIds.includes(t1.value.toString()) ||
+//     specialTileIds.includes(t2.value.toString())
+//   ) {
+//     return true;
+//   } else if (t1.value === t2.value) return true;
+//   return false;
+// };
 
 // const calculateNewValue = (t1: Tile, t2: Tile) => {
 //   const specialTileIds = [div2Tile, x2Tile].map((t) => t.id);

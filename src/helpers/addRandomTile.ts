@@ -1,13 +1,13 @@
 import { uniqueId } from "./uniqueId.ts";
-import chooseWeightedOption from "./chooseWeightedOption.ts";
+import chooseWeightedOption, { Option } from "./chooseWeightedOption.ts";
 import { Tile } from "../state";
 
 export const addRandomTile = (
   tiles: Tile[],
   width: number,
   height: number,
-  tileOptions: { id: string | number; weight: number }[],
-) => {
+  tileOptions: Option[],
+): Tile => {
   // FIXME; this is awful
   let potentialNewCellPos = {
     x: Math.floor(Math.random() * width),
@@ -27,9 +27,13 @@ export const addRandomTile = (
     };
   }
 
+  const chosenTile = chooseWeightedOption(tileOptions);
+
   return {
     id: uniqueId(),
-    value: chooseWeightedOption(tileOptions),
+    name: chosenTile.id.toString(),
+    value: chosenTile.value || 2,
     position: potentialNewCellPos,
+    type: chosenTile.type,
   };
 };

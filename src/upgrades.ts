@@ -88,6 +88,21 @@ const addEightTile: Upgrade = {
   weight: 100,
 };
 
+const upgradeShopTile: Upgrade = {
+  name: "Frequent Shopper",
+  description: "Increases the chance to spawn a $ tile",
+  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+    const found8Tile = state.tilesToSpawn.find((ts) => ts.id === "$");
+    if (found8Tile) {
+      found8Tile.weight += tile8.weight;
+    }
+    return state;
+  },
+  cost: 4,
+  tier: 1,
+  weight: 100,
+};
+
 // const addDivTwoTile: Upgrade = {
 //   name: "÷2 Tile",
 //   description: "Adds a chance to spawn a ÷2 tile",
@@ -110,5 +125,6 @@ export const upgrades = [
   // addDivTwoTile,
   widthUpgrade,
   heightUpgrade,
+  upgradeShopTile,
   shuffle,
 ];

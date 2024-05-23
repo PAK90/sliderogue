@@ -1,4 +1,4 @@
-import { Tile } from "../state";
+import { Tile, useGameStore } from "../state";
 
 const TileRender = ({ tile }: { tile: Tile }) => {
   const tileColourMap = {
@@ -17,29 +17,42 @@ const TileRender = ({ tile }: { tile: Tile }) => {
     1024: "bg-orange-500",
     "†": "bg-orange-200",
     Z: "bg-green-300",
+    W: "bg-blue-300",
+    F: "bg-red-300",
   };
 
-  // const { openShopping, gold } = useGameStore();
+  const { activeSpells, enspellTile } = useGameStore();
 
-  // const handleTileClick = () => {
-  //   // only allow opening of the store when player has gold, to prevent just getting rid of the tiles
-  //   if (
-  //     typeof tile.value === "string" &&
-  //     tile.value.indexOf("$") > -1 &&
-  //     gold > 0
-  //   ) {
-  //     openShopping(tile.value, tile.id);
-  //   }
-  // };
+  // hack considering there's only one active spell for now
+  // TODO: make this work for N active spells
+  const activeSpell = activeSpells[0];
+  const spellNeedsThisTile = activeSpell.spell.requiredTiles.find(
+    (rt, rtIx) => {
+      if (
+        rt.tileValue === tile.value &&
+        rt.tileName === tile.name &&
+        !activeSpell.complete[rtIx]
+      ) {
+        return true;
+      }
+    },
+  );
+
+  const handleTileClick = () => {
+    if (spellNeedsThisTile) {
+      enspellTile(tile);
+    }
+  };
 
   return (
     <div
-      // onClick={handleTileClick}
+      onClick={handleTileClick}
       className={`
                   w-20 h-20 ${tileColourMap[tile.name as keyof typeof tileColourMap]} 
                   rounded flex items-center justify-center
                   animate-growIn
-                  ${tile.value.toString().indexOf("$") > -1 && "cursor-pointer"}
+                  ${spellNeedsThisTile && "border-4 border-green-300"}
+                  ${spellNeedsThisTile && "cursor-pointer"}
                 `}
       style={{
         transformStyle: "preserve-3d",
@@ -47,14 +60,15 @@ const TileRender = ({ tile }: { tile: Tile }) => {
         left: tile.position.x * 80 + 8 + tile.position.x * 8,
         top: tile.position.y * 80 + 8 + tile.position.y * 8,
         transition: "top 100ms linear, left 100ms linear",
+        // opacity: `${Math.sqrt(tile.value) * 20}%`,
       }}
     >
-      <span className="text-gray-600 font-bold text-3xl">{tile.name}</span>
+      <span className="text-gray-600 font-bold text-3xl">{tile.value}</span>
       <span
         style={{ position: "absolute", top: 4, left: 4 }}
         className="text-gray-700 font-bold text-xl"
       >
-        {tile.value}
+        {tile.name}
       </span>
     </div>
   );

@@ -5,7 +5,8 @@ import { Upgrade } from "../upgrades.ts";
 import { addRandomTile } from "../helpers/addRandomTile.ts";
 // import { defaultTiles } from "../tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
-import { swordTile, zombieTile } from "../tiles.ts";
+import { fireTile, waterTile } from "../tiles.ts";
+import { Spell, spells } from "../spells.ts";
 // import range from "../helpers/range.ts";
 
 type Direction = "up" | "down" | "left" | "right";
@@ -22,7 +23,7 @@ export type Coordinate = {
   y: number;
 };
 
-export type TileType = "WEAPON" | "ENEMY" | "NUMBER";
+export type TileType = "WEAPON" | "ENEMY" | "NUMBER" | "ELEMENTAL";
 
 export type Tile = {
   position: Coordinate;
@@ -42,6 +43,7 @@ export type GameState = {
 
   shopping: { tileId: number; tier: string } | null;
   tilesToSpawn: Option[];
+  activeSpells: { spell: Spell; complete: boolean[] }[];
 };
 
 export type Actions = {
@@ -51,6 +53,7 @@ export type Actions = {
   closeShopping: () => void;
   applyUpgrade: (u: Upgrade) => void;
   setTilesToSpawn: (t: Option[]) => void;
+  enspellTile: (t: Tile) => void;
 };
 
 export const useGameStore = create<GameState & Actions>()(
@@ -62,6 +65,36 @@ export const useGameStore = create<GameState & Actions>()(
     gold: 0,
     shopping: null,
     tilesToSpawn: [],
+    activeSpells: [],
+
+    enspellTile: (tile: Tile) =>
+      set((state) => {
+        const activeSpell = state.activeSpells[0];
+
+        const slotToFillIx = activeSpell.spell.requiredTiles.findIndex(
+          (rt, rtIx) => {
+            return (
+              !activeSpell.complete[rtIx] &&
+              rt.tileName === tile.name &&
+              rt.tileValue === tile.value
+            );
+          },
+        );
+
+        if (slotToFillIx > -1) {
+          // shouldn't need this if, but you never know
+          activeSpell.complete[slotToFillIx] = true;
+        }
+
+        // if the spell is now complete, roll a new one
+        if (activeSpell.complete.every(Boolean)) {
+          state.activeSpells = [rollActiveSpell()];
+        }
+
+        // delete the tile that's now 'in' the spell
+        const enspelledTile = state.tiles.findIndex((t) => t.id === tile.id);
+        state.tiles.splice(enspelledTile, 1);
+      }),
 
     setTilesToSpawn: (o: Option[]) =>
       set((state) => {
@@ -97,7 +130,7 @@ export const useGameStore = create<GameState & Actions>()(
           state.boardWidth,
           state.boardHeight,
         );
-        // let moved = false;
+        let moved = false;
 
         traversals.x.forEach((xTrav) => {
           traversals.y.forEach((yTrav) => {
@@ -127,7 +160,8 @@ export const useGameStore = create<GameState & Actions>()(
               if (
                 nextPotentialTile &&
                 // tilesCanMerge(tileHere, nextPotentialTile)
-                tileHere.name === nextPotentialTile.name
+                tileHere.name === nextPotentialTile.name &&
+                tileHere.value === nextPotentialTile.value
               ) {
                 // move the tile that's about to be deleted so that it looks good
                 tileHere.position = positions.next;
@@ -139,7 +173,8 @@ export const useGameStore = create<GameState & Actions>()(
                 state.tiles.splice(nextTileIx, 1);
 
                 tileHere.position = positions.next;
-                tileHere.value = nextPotentialTile.value + tileHere.value;
+                // tileHere.value = nextPotentialTile.value + tileHere.value;
+                tileHere.value *= 2;
 
                 // update the score
                 state.score += tileHere.value;
@@ -176,23 +211,23 @@ export const useGameStore = create<GameState & Actions>()(
                 tileHere.position.x !== currentCell.x ||
                 tileHere.position.y !== currentCell.y
               ) {
-                // moved = true;
+                moved = true;
               }
             }
           });
         });
 
-        // if (moved) {
-        //   // add a random tile
-        //   state.tiles.push(
-        //     addRandomTile(
-        //       state.tiles,
-        //       state.boardWidth,
-        //       state.boardHeight,
-        //       state.tilesToSpawn,
-        //     ),
-        //   );
-        // }
+        if (moved) {
+          // add a random tile
+          state.tiles.push(
+            addRandomTile(
+              state.tiles,
+              state.boardWidth,
+              state.boardHeight,
+              state.tilesToSpawn,
+            ),
+          );
+        }
       }),
 
     resetGame: () => {
@@ -202,28 +237,7 @@ export const useGameStore = create<GameState & Actions>()(
         state.boardWidth = 5;
         state.boardHeight = 5;
         state.tiles = [];
-        state.tilesToSpawn = [
-          { ...zombieTile, value: 4 },
-          { ...zombieTile, value: 4 },
-          { ...zombieTile, value: 4 },
-          { ...zombieTile, value: 4 },
-          { ...swordTile, value: 4 },
-          swordTile,
-        ];
-        // const tile1 = addRandomTile(
-        //   state.tiles,
-        //   state.boardWidth,
-        //   state.boardHeight,
-        //   state.tilesToSpawn,
-        // );
-        // state.tiles.push(tile1);
-        //
-        // const tile2 = addRandomTile(
-        //   state.tiles,
-        //   state.boardWidth,
-        //   state.boardHeight,
-        //   state.tilesToSpawn,
-        // );
+        state.tilesToSpawn = [fireTile, waterTile, fireTile, waterTile];
         const tilesToAdd = state.tilesToSpawn.reduce((tta, option) => {
           tta.push(
             // @ts-expect-error stupid never
@@ -232,10 +246,21 @@ export const useGameStore = create<GameState & Actions>()(
           return tta;
         }, []);
         state.tiles = state.tiles.concat(tilesToAdd);
+
+        state.activeSpells = [];
+        state.activeSpells.push(rollActiveSpell());
       });
     },
   })),
 );
+
+const rollActiveSpell = () => {
+  const selectedSpell = spells[Math.floor(Math.random() * spells.length)];
+  return {
+    spell: selectedSpell,
+    complete: selectedSpell.requiredTiles.map(() => false),
+  };
+};
 
 // const tilesCanMerge = (t1: Tile, t2: Tile) => {
 //   const specialTileIds = [div2Tile, x2Tile].map((t) => t.id);

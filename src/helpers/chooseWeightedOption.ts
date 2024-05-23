@@ -2,7 +2,7 @@ import { TileType } from "../state";
 
 export type Option = {
   weight: number;
-  id: string | number;
+  id: string;
   type: TileType;
   value?: number;
 };

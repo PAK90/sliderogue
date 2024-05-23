@@ -9,6 +9,8 @@ export const zombieTile: Option = { id: "Z", weight: 100, type: "ENEMY" };
 
 export const fireTile: Option = { id: "F", weight: 100, type: "ELEMENTAL" };
 export const waterTile: Option = { id: "W", weight: 100, type: "ELEMENTAL" };
+export const fire4Tile: Option = { ...fireTile, weight: 10, value: 4 };
+export const water4Tile: Option = { ...waterTile, weight: 10, value: 4 };
 
 // export const tile8 = { id: 8, weight: 10 };
 // export const x2Tile = { id: "x2", weight: 5 };
@@ -19,3 +21,5 @@ export const waterTile: Option = { id: "W", weight: 100, type: "ELEMENTAL" };
 export const defaultTiles = [tile2, tile4, storeTile];
 export const weaponTiles = [swordTile];
 export const enemyTiles = [zombieTile];
+
+export const elementalTiles = [fireTile, waterTile, water4Tile, fire4Tile];

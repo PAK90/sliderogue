@@ -5,7 +5,7 @@ import { Upgrade } from "../upgrades.ts";
 import { addRandomTile } from "../helpers/addRandomTile.ts";
 // import { defaultTiles } from "../tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
-import { fireTile, waterTile } from "../tiles.ts";
+import { elementalTiles, fireTile, waterTile } from "../tiles.ts";
 import { Spell, spells } from "../spells.ts";
 // import range from "../helpers/range.ts";
 
@@ -237,6 +237,7 @@ export const useGameStore = create<GameState & Actions>()(
         state.boardWidth = 5;
         state.boardHeight = 5;
         state.tiles = [];
+        // we want to spawn these 4 specific tiles
         state.tilesToSpawn = [fireTile, waterTile, fireTile, waterTile];
         const tilesToAdd = state.tilesToSpawn.reduce((tta, option) => {
           tta.push(
@@ -246,6 +247,9 @@ export const useGameStore = create<GameState & Actions>()(
           return tta;
         }, []);
         state.tiles = state.tiles.concat(tilesToAdd);
+
+        // but after this, we want the spawn pool to be different... includes wildcards and 4-tiles.
+        state.tilesToSpawn = elementalTiles;
 
         state.activeSpells = [];
         state.activeSpells.push(rollActiveSpell());

@@ -79,6 +79,7 @@ const GameArea = () => {
         </button>
       </div>
       <div>
+        {`Fire > Air > Earth > Water > Fire`}
         {activeSpells.map((as, asIx) => (
           <SpellRender key={asIx} activeSpell={as} />
         ))}

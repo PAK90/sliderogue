@@ -8,6 +8,8 @@ const SpellRender = ({
   const colourMap = {
     W: "bg-blue-300",
     F: "bg-red-300",
+    A: "bg-amber-300",
+    E: "bg-green-300",
   };
 
   const tileRender = (

@@ -5,7 +5,13 @@ import { Upgrade } from "../upgrades.ts";
 import { addRandomTile } from "../helpers/addRandomTile.ts";
 // import { defaultTiles } from "../tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
-import { elementalTiles, fireTile, waterTile } from "../tiles.ts";
+import {
+  airTile,
+  earthTile,
+  elementalTiles,
+  fireTile,
+  waterTile,
+} from "../tiles.ts";
 import { Spell, spells } from "../spells.ts";
 // import range from "../helpers/range.ts";
 
@@ -157,51 +163,66 @@ export const useGameStore = create<GameState & Actions>()(
                   t.position.y === positions.next.y,
               );
 
-              if (
-                nextPotentialTile &&
-                // tilesCanMerge(tileHere, nextPotentialTile)
-                tileHere.name === nextPotentialTile.name &&
-                tileHere.value === nextPotentialTile.value
-              ) {
-                // move the tile that's about to be deleted so that it looks good
-                tileHere.position = positions.next;
-
-                // delete the merging tiles
-                const nextTileIx = state.tiles.findIndex(
-                  (t) => t.id === nextPotentialTile.id,
+              if (nextPotentialTile) {
+                const elementalCollisionResult = elementsCollide(
+                  tileHere,
+                  nextPotentialTile,
                 );
-                state.tiles.splice(nextTileIx, 1);
+                if (
+                  // tilesCanMerge(tileHere, nextPotentialTile)
+                  tileHere.name === nextPotentialTile.name &&
+                  tileHere.value === nextPotentialTile.value
+                ) {
+                  // move the tile that's about to be deleted so that it looks good
+                  tileHere.position = positions.next;
 
-                tileHere.position = positions.next;
-                // tileHere.value = nextPotentialTile.value + tileHere.value;
-                tileHere.value *= 2;
-
-                // update the score
-                state.score += tileHere.value;
-              } else if (
-                nextPotentialTile &&
-                nextPotentialTile.type === "ENEMY" &&
-                tileHere.type === "WEAPON"
-              ) {
-                // we have a weapon hitting an enemy; do damage
-                tileHere.position = positions.farthest;
-                nextPotentialTile.value -= tileHere.value;
-
-                // also self-damage the weapon by 1
-                tileHere.value -= 1;
-
-                // delete the hit tile if its value is below 0.
-                if (nextPotentialTile.value <= 0) {
+                  // delete the merging tiles
                   const nextTileIx = state.tiles.findIndex(
                     (t) => t.id === nextPotentialTile.id,
                   );
                   state.tiles.splice(nextTileIx, 1);
-                } // delete the hiting tile if its value is below 0.
-                if (tileHere.value <= 0) {
-                  const tileHereIx = state.tiles.findIndex(
-                    (t) => t.id === tileHere.id,
-                  );
-                  state.tiles.splice(tileHereIx, 1);
+
+                  tileHere.position = positions.next;
+                  // tileHere.value = nextPotentialTile.value + tileHere.value;
+                  tileHere.value *= 2;
+
+                  // update the score
+                  state.score += tileHere.value;
+                } else if (elementalCollisionResult) {
+                  // move the tile that's about to be deleted so that it looks good
+                  tileHere.position = positions.next;
+                  const { winner, loser } = elementalCollisionResult as {
+                    winner: Tile;
+                    loser: Tile;
+                  };
+
+                  if (winner.value < loser.value) {
+                    // e.g. water2 can't destroy a fire4
+                    tileHere.position = positions.farthest;
+                  } else {
+                    // losing tile is equal or less than winner, so it has to go.
+                    // delete the losing tile
+                    const losingTileIx = state.tiles.findIndex(
+                      (t) => t.id === loser.id,
+                    );
+                    state.tiles.splice(losingTileIx, 1);
+
+                    tileHere.position = positions.next;
+
+                    // if (winner.value === loser.value) {
+                    //   // the winner also gets destroyed
+                    //   const winningTileIx = state.tiles.findIndex(
+                    //     (t) => t.id === winner.id,
+                    //   );
+                    //   state.tiles.splice(winningTileIx, 1);
+                    // }
+                  }
+
+                  // update the score
+                  state.score += tileHere.value;
+                } else {
+                  // no elemental collision, just move the current tile along.
+                  tileHere.position = positions.farthest;
                 }
               } else {
                 // no tile collision, just move the current tile along.
@@ -238,7 +259,7 @@ export const useGameStore = create<GameState & Actions>()(
         state.boardHeight = 5;
         state.tiles = [];
         // we want to spawn these 4 specific tiles
-        state.tilesToSpawn = [fireTile, waterTile, fireTile, waterTile];
+        state.tilesToSpawn = [fireTile, waterTile, earthTile, airTile];
         const tilesToAdd = state.tilesToSpawn.reduce((tta, option) => {
           tta.push(
             // @ts-expect-error stupid never
@@ -257,6 +278,28 @@ export const useGameStore = create<GameState & Actions>()(
     },
   })),
 );
+
+const elementsCollide = (
+  t1: Tile,
+  t2: Tile,
+): { winner: Tile; loser: Tile } | boolean => {
+  // Takes in two elemental tiles and returns the winner
+  // Returns false if it's not a destructive combo.
+  const winningMap = {
+    F: "A",
+    A: "E",
+    E: "W",
+    W: "F",
+  };
+  // @ts-expect-error don't know how to fix
+  if (winningMap[t1.name] === t2.name) {
+    return { winner: t1, loser: t2 };
+    // @ts-expect-error don't know how to fix
+  } else if (winningMap[t2.name] === t1.name) {
+    return { winner: t2, loser: t1 };
+  }
+  return false;
+};
 
 const rollActiveSpell = () => {
   const selectedSpell = spells[Math.floor(Math.random() * spells.length)];

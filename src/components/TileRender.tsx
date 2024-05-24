@@ -19,6 +19,8 @@ const TileRender = ({ tile }: { tile: Tile }) => {
     Z: "bg-green-300",
     W: "bg-blue-300",
     F: "bg-red-300",
+    A: "bg-amber-300",
+    E: "bg-green-300",
   };
 
   const { activeSpells, enspellTile } = useGameStore();

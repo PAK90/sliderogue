@@ -274,7 +274,7 @@ export const useGameStore = create<GameState & Actions>()(
         const myBoard = initBoard(5, 5, elementalTiles, elementalTiles);
         // const enemyBoard = initBoard(5, 5, elementalTiles, elementalTiles);
         state.boards = [myBoard];
-        state.choosing = true;
+        state.choosing = false;
       });
     },
   })),

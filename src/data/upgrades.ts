@@ -17,7 +17,7 @@ const widthUpgrade: Upgrade = {
   name: "Enwiden",
   description: "Expands the grid 1 column to the right",
   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
-    state.boardWidth++;
+    state.boards[0].boardWidth++;
     return state;
   },
   cost: 4,
@@ -29,7 +29,7 @@ const heightUpgrade: Upgrade = {
   name: "Enheighten",
   description: "Expands the grid 1 row down",
   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
-    state.boardHeight++;
+    state.boards[0].boardHeight++;
     return state;
   },
   cost: 4,
@@ -43,10 +43,10 @@ const shuffle: Upgrade = {
   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
     const randomTiles: Tile[] = [];
 
-    state.tiles.forEach((tile) => {
+    state.boards[0].tiles.forEach((tile) => {
       let potentialNewCellPos = {
-        x: Math.floor(Math.random() * state.boardWidth),
-        y: Math.floor(Math.random() * state.boardHeight),
+        x: Math.floor(Math.random() * state.boards[0].boardWidth),
+        y: Math.floor(Math.random() * state.boards[0].boardHeight),
       };
       while (
         randomTiles.find(
@@ -56,14 +56,14 @@ const shuffle: Upgrade = {
         )
       ) {
         potentialNewCellPos = {
-          x: Math.floor(Math.random() * state.boardWidth),
-          y: Math.floor(Math.random() * state.boardHeight),
+          x: Math.floor(Math.random() * state.boards[0].boardWidth),
+          y: Math.floor(Math.random() * state.boards[0].boardHeight),
         };
       }
 
       randomTiles.push({ ...tile, position: potentialNewCellPos });
     });
-    state.tiles = randomTiles;
+    state.boards[0].tiles = randomTiles;
     return state;
   },
   cost: 2,

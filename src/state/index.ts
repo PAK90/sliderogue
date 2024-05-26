@@ -5,7 +5,7 @@ import { immer } from "zustand/middleware/immer";
 import { addRandomTile } from "../helpers/addRandomTile.ts";
 // import { defaultTiles } from "../tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
-import { elementalTiles } from "../data/tiles.ts";
+import { elemental4Tiles, elementalTiles } from "../data/tiles.ts";
 import { rollActiveSpellData, Spell } from "../data/spells.ts";
 // import range from "../helpers/range.ts";
 
@@ -38,6 +38,7 @@ export type BoardState = {
   boardWidth: number;
   boardHeight: number;
   score: number;
+  imminentAnnihilations: Coordinate[];
 
   baseTilesToSpawn: Option[];
   newTilesToSpawn: Option[];
@@ -48,12 +49,12 @@ export type BoardState = {
 export type GameState = {
   boards: BoardState[];
   choosing: boolean;
-  setChoosing: () => void;
 };
 
 export type Actions = {
   move: (direction: Direction, boardIndex?: number) => void;
   resetGame: () => void;
+  setChoosing: () => void;
   // openShopping: (tier: string, tileId: number) => void;
   // closeShopping: () => void;
   // applyUpgrade: (u: Upgrade) => void;
@@ -66,6 +67,7 @@ export const useGameStore = create<GameState & Actions>()(
   immer((set) => ({
     choosing: false,
     boards: [],
+    imminentAnnihilations: [],
 
     setChoosing: () =>
       set((state) => {
@@ -211,7 +213,7 @@ export const useGameStore = create<GameState & Actions>()(
                     loser: Tile;
                   };
 
-                  if (winner.value < loser.value) {
+                  if (winner.value !== loser.value) {
                     // e.g. water2 can't destroy a fire4
                     tileHere.position = positions.farthest;
                   } else {
@@ -271,7 +273,7 @@ export const useGameStore = create<GameState & Actions>()(
 
     resetGame: () => {
       set((state) => {
-        const myBoard = initBoard(5, 5, elementalTiles, elementalTiles);
+        const myBoard = initBoard(5, 5, elementalTiles, elemental4Tiles);
         // const enemyBoard = initBoard(5, 5, elementalTiles, elementalTiles);
         state.boards = [myBoard];
         state.choosing = false;
@@ -289,6 +291,7 @@ const initBoard = (
   const newSpell = rollActiveSpellData();
   const newBoardState: BoardState = {
     score: 0,
+    imminentAnnihilations: [],
     boardWidth: width,
     boardHeight: height,
     tiles: [],
@@ -321,18 +324,23 @@ const elementsCollide = (
 ): { winner: Tile; loser: Tile } | boolean => {
   // Takes in two elemental tiles and returns the winner
   // Returns false if it's not a destructive combo.
-  const winningMap = {
-    F: "A",
-    A: "E",
-    E: "W",
-    W: "F",
-  };
-  // @ts-expect-error don't know how to fix
-  if (winningMap[t1.name] === t2.name) {
-    return { winner: t1, loser: t2 };
+  if (
+    Math.abs(t1.position.x - t2.position.x) === 1 ||
+    Math.abs(t1.position.y - t2.position.y) === 1
+  ) {
+    const winningMap = {
+      F: "A",
+      A: "E",
+      E: "W",
+      W: "F",
+    };
     // @ts-expect-error don't know how to fix
-  } else if (winningMap[t2.name] === t1.name) {
-    return { winner: t2, loser: t1 };
+    if (winningMap[t1.name] === t2.name) {
+      return { winner: t1, loser: t2 };
+      // @ts-expect-error don't know how to fix
+    } else if (winningMap[t2.name] === t1.name) {
+      return { winner: t2, loser: t1 };
+    }
   }
   return false;
 };

@@ -25,3 +25,13 @@ export const weaponTiles = [swordTile];
 export const enemyTiles = [zombieTile];
 
 export const elementalTiles = [fireTile, waterTile, earthTile, airTile];
+export const elemental4Tiles = [
+  fireTile,
+  { ...fireTile, value: 4, weight: 10 },
+  waterTile,
+  { ...waterTile, value: 4, weight: 10 },
+  earthTile,
+  { ...earthTile, value: 4, weight: 10 },
+  airTile,
+  { ...airTile, value: 4, weight: 10 },
+];

@@ -6,7 +6,7 @@ import { addRandomTile } from "../helpers/addRandomTile.ts";
 // import { defaultTiles } from "../tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
 import { elementalTiles } from "../data/tiles.ts";
-import { Spell, spells } from "../data/spells.ts";
+import { rollActiveSpellData, Spell } from "../data/spells.ts";
 // import range from "../helpers/range.ts";
 
 export type Direction = "up" | "down" | "left" | "right";
@@ -47,6 +47,8 @@ export type BoardState = {
 
 export type GameState = {
   boards: BoardState[];
+  choosing: boolean;
+  setChoosing: () => void;
 };
 
 export type Actions = {
@@ -57,16 +59,25 @@ export type Actions = {
   // applyUpgrade: (u: Upgrade) => void;
   setTilesToSpawn: (t: Option[]) => void;
   enspellTile: (t: Tile) => void;
-  setActiveSpell: (ix: number, boardIx: number) => void;
+  setActiveSpell: (newSpell: Spell, boardIx: number) => void;
 };
 
 export const useGameStore = create<GameState & Actions>()(
   immer((set) => ({
+    choosing: false,
     boards: [],
 
-    setActiveSpell: (ix: number, boardIx: number) =>
+    setChoosing: () =>
       set((state) => {
-        state.boards[boardIx].activeSpell = ix;
+        state.choosing = !state.choosing;
+      }),
+
+    setActiveSpell: (newSpell: Spell, boardIx: number) =>
+      set((state) => {
+        state.boards[boardIx].availableSpells[0] = {
+          spell: newSpell,
+          complete: newSpell.requiredTiles.map(() => false),
+        };
       }),
 
     enspellTile: (tile: Tile) =>
@@ -89,12 +100,13 @@ export const useGameStore = create<GameState & Actions>()(
           activeSpell.complete[slotToFillIx] = true;
         }
 
-        // if the spell is now complete, roll a new one
+        // if the spell is now complete, let the player roll a new one
         if (activeSpell.complete.every(Boolean)) {
-          const newSpell = rollActiveSpell();
-          state.boards[0].availableSpells = [newSpell];
-          state.boards[0].newTilesToSpawn = newSpell.spell.spawns;
+          // const newSpell = rollActiveSpellData();
+          // state.boards[0].availableSpells = [newSpell];
+          // state.boards[0].newTilesToSpawn = newSpell.spell.spawns;
           // TODO: do the spell effect
+          state.choosing = true;
         }
 
         // delete the tile that's now 'in' the spell
@@ -262,6 +274,7 @@ export const useGameStore = create<GameState & Actions>()(
         const myBoard = initBoard(5, 5, elementalTiles, elementalTiles);
         // const enemyBoard = initBoard(5, 5, elementalTiles, elementalTiles);
         state.boards = [myBoard];
+        state.choosing = true;
       });
     },
   })),
@@ -273,7 +286,7 @@ const initBoard = (
   tilesToStart: Option[],
   baseTilesToSpawn: Option[],
 ) => {
-  const newSpell = rollActiveSpell();
+  const newSpell = rollActiveSpellData();
   const newBoardState: BoardState = {
     score: 0,
     boardWidth: width,
@@ -322,14 +335,6 @@ const elementsCollide = (
     return { winner: t2, loser: t1 };
   }
   return false;
-};
-
-const rollActiveSpell = () => {
-  const selectedSpell = spells[Math.floor(Math.random() * spells.length)];
-  return {
-    spell: selectedSpell,
-    complete: selectedSpell.requiredTiles.map(() => false),
-  };
 };
 
 // const tilesCanMerge = (t1: Tile, t2: Tile) => {

@@ -26,6 +26,7 @@ const SpellRender = ({
                 `}
       style={{
         opacity: spellData.complete[ix] ? "100%" : "50%",
+        position: "relative",
       }}
     >
       <span className="text-gray-600 font-bold text-xl">{t.tileValue}</span>

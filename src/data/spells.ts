@@ -1,6 +1,18 @@
 import { airTile, earthTile, fireTile, waterTile } from "./tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
 
+export const rollActiveSpellData = () => {
+  const selectedSpell = rollRandomSpell();
+  return {
+    spell: selectedSpell,
+    complete: selectedSpell.requiredTiles.map(() => false),
+  };
+};
+
+export const rollRandomSpell = () => {
+  return spells[Math.floor(Math.random() * spells.length)];
+};
+
 export type Spell = {
   name: string;
   requiredTiles: {
@@ -33,6 +45,50 @@ const lavaSpell: Spell = {
   spawns: [fireTile, earthTile],
 };
 
+const sandstormSpell: Spell = {
+  name: "Sand Storm",
+  requiredTiles: [
+    { tileName: airTile.id, tileValue: 4 },
+    { tileName: airTile.id, tileValue: 16 },
+    { tileName: earthTile.id, tileValue: 4 },
+    { tileName: earthTile.id, tileValue: 16 },
+  ],
+  spawns: [airTile, earthTile],
+};
+
+const mistySpell: Spell = {
+  name: "Morning Mist",
+  requiredTiles: [
+    { tileName: waterTile.id, tileValue: 4 },
+    { tileName: waterTile.id, tileValue: 16 },
+    { tileName: airTile.id, tileValue: 4 },
+    { tileName: airTile.id, tileValue: 16 },
+  ],
+  spawns: [waterTile, airTile],
+};
+
+const mudflowSpell: Spell = {
+  name: "Mud Flow",
+  requiredTiles: [
+    { tileName: waterTile.id, tileValue: 4 },
+    { tileName: waterTile.id, tileValue: 16 },
+    { tileName: earthTile.id, tileValue: 4 },
+    { tileName: earthTile.id, tileValue: 16 },
+  ],
+  spawns: [waterTile, earthTile],
+};
+
+const staticsparkSpell: Spell = {
+  name: "Static Sparks",
+  requiredTiles: [
+    { tileName: fireTile.id, tileValue: 4 },
+    { tileName: fireTile.id, tileValue: 16 },
+    { tileName: airTile.id, tileValue: 4 },
+    { tileName: airTile.id, tileValue: 16 },
+  ],
+  spawns: [fireTile, airTile],
+};
+
 // const waterHoseSpell: Spell = {
 //   name: "Water Hose",
 //   requiredTiles: [
@@ -62,4 +118,12 @@ const rainbowSpell: Spell = {
   spawns: [],
 };
 
-export const spells = [steamSpell, rainbowSpell, lavaSpell];
+export const spells = [
+  steamSpell,
+  rainbowSpell,
+  lavaSpell,
+  staticsparkSpell,
+  mistySpell,
+  mudflowSpell,
+  sandstormSpell,
+];

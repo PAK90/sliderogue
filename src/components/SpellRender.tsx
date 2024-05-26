@@ -1,9 +1,9 @@
-import { Spell } from "../spells.ts";
+import { Spell } from "../data/spells.ts";
 
 const SpellRender = ({
-  activeSpell,
+  spellData,
 }: {
-  activeSpell: { spell: Spell; complete: boolean[] };
+  spellData: { spell: Spell; complete: boolean[] };
 }) => {
   const colourMap = {
     W: "bg-blue-300",
@@ -19,22 +19,19 @@ const SpellRender = ({
     <div
       key={ix}
       className={`
-                  w-20 h-20 ${colourMap[t.tileName as keyof typeof colourMap]} 
+                  w-10 h-10 ${colourMap[t.tileName as keyof typeof colourMap]} 
                   rounded flex items-center justify-center
                   animate-growIn
                   ${t.tileValue.toString().indexOf("$") > -1 && "cursor-pointer"}
                 `}
       style={{
-        transform: "scale(0.6)",
-        transformStyle: "preserve-3d",
-        transition: "top 100ms linear, left 100ms linear",
-        opacity: activeSpell.complete[ix] ? "100%" : "50%",
+        opacity: spellData.complete[ix] ? "100%" : "50%",
       }}
     >
-      <span className="text-gray-600 font-bold text-3xl">{t.tileValue}</span>
+      <span className="text-gray-600 font-bold text-xl">{t.tileValue}</span>
       <span
         style={{ position: "absolute", top: 4, left: 4 }}
-        className="text-gray-700 font-bold text-xl"
+        className="text-gray-700 font-bold text-xs"
       >
         {t.tileName}
       </span>
@@ -43,9 +40,9 @@ const SpellRender = ({
 
   return (
     <div>
-      {activeSpell.spell.name}
+      {spellData.spell.name}
       <div className="flex">
-        {activeSpell.spell.requiredTiles.map((rt, rtIx) => {
+        {spellData.spell.requiredTiles.map((rt, rtIx) => {
           return tileRender(rt, rtIx);
         })}
       </div>

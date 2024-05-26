@@ -1,21 +1,15 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 // import chooseWeightedOption from "../helpers/chooseWeightedOption.ts";
-import { Upgrade } from "../upgrades.ts";
+// import { Upgrade } from "../upgrades.ts";
 import { addRandomTile } from "../helpers/addRandomTile.ts";
 // import { defaultTiles } from "../tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
-import {
-  airTile,
-  earthTile,
-  elementalTiles,
-  fireTile,
-  waterTile,
-} from "../tiles.ts";
-import { Spell, spells } from "../spells.ts";
+import { elementalTiles } from "../data/tiles.ts";
+import { Spell, spells } from "../data/spells.ts";
 // import range from "../helpers/range.ts";
 
-type Direction = "up" | "down" | "left" | "right";
+export type Direction = "up" | "down" | "left" | "right";
 
 const directionMap = {
   up: { x: 0, y: -1 },
@@ -39,43 +33,46 @@ export type Tile = {
   type: TileType;
 };
 
-export type GameState = {
-  // tiles: { [key: string]: Tile };
+export type BoardState = {
   tiles: Tile[];
   boardWidth: number;
   boardHeight: number;
   score: number;
-  gold: number;
 
-  shopping: { tileId: number; tier: string } | null;
-  tilesToSpawn: Option[];
-  activeSpells: { spell: Spell; complete: boolean[] }[];
+  baseTilesToSpawn: Option[];
+  newTilesToSpawn: Option[];
+  availableSpells: { spell: Spell; complete: boolean[] }[];
+  activeSpell: number;
+};
+
+export type GameState = {
+  boards: BoardState[];
 };
 
 export type Actions = {
-  move: (direction: Direction) => void;
+  move: (direction: Direction, boardIndex?: number) => void;
   resetGame: () => void;
-  openShopping: (tier: string, tileId: number) => void;
-  closeShopping: () => void;
-  applyUpgrade: (u: Upgrade) => void;
+  // openShopping: (tier: string, tileId: number) => void;
+  // closeShopping: () => void;
+  // applyUpgrade: (u: Upgrade) => void;
   setTilesToSpawn: (t: Option[]) => void;
   enspellTile: (t: Tile) => void;
+  setActiveSpell: (ix: number, boardIx: number) => void;
 };
 
 export const useGameStore = create<GameState & Actions>()(
   immer((set) => ({
-    tiles: [],
-    boardHeight: 5,
-    boardWidth: 5,
-    score: 0,
-    gold: 0,
-    shopping: null,
-    tilesToSpawn: [],
-    activeSpells: [],
+    boards: [],
+
+    setActiveSpell: (ix: number, boardIx: number) =>
+      set((state) => {
+        state.boards[boardIx].activeSpell = ix;
+      }),
 
     enspellTile: (tile: Tile) =>
       set((state) => {
-        const activeSpell = state.activeSpells[0];
+        const activeSpell =
+          state.boards[0].availableSpells[state.boards[0].activeSpell];
 
         const slotToFillIx = activeSpell.spell.requiredTiles.findIndex(
           (rt, rtIx) => {
@@ -88,53 +85,58 @@ export const useGameStore = create<GameState & Actions>()(
         );
 
         if (slotToFillIx > -1) {
-          // shouldn't need this if, but you never know
+          // shouldn't need this if statement, but you never know
           activeSpell.complete[slotToFillIx] = true;
         }
 
         // if the spell is now complete, roll a new one
         if (activeSpell.complete.every(Boolean)) {
-          state.activeSpells = [rollActiveSpell()];
+          const newSpell = rollActiveSpell();
+          state.boards[0].availableSpells = [newSpell];
+          state.boards[0].newTilesToSpawn = newSpell.spell.spawns;
+          // TODO: do the spell effect
         }
 
         // delete the tile that's now 'in' the spell
-        const enspelledTile = state.tiles.findIndex((t) => t.id === tile.id);
-        state.tiles.splice(enspelledTile, 1);
+        const enspelledTile = state.boards[0].tiles.findIndex(
+          (t) => t.id === tile.id,
+        );
+        state.boards[0].tiles.splice(enspelledTile, 1);
       }),
 
     setTilesToSpawn: (o: Option[]) =>
       set((state) => {
-        state.tilesToSpawn = o;
+        state.boards[0].baseTilesToSpawn = o;
       }),
 
-    applyUpgrade: (upgrade: Upgrade) =>
-      set((state) => {
-        state = upgrade.stateUpdater(state);
-        state.gold -= upgrade.cost;
-      }),
+    // applyUpgrade: (upgrade: Upgrade) =>
+    //   set((state) => {
+    //     state = upgrade.stateUpdater(state);
+    //     state.boards[0].gold -= upgrade.cost;
+    //   }),
+    //
+    // openShopping: (tier: string, tileId: number) =>
+    //   set((state) => {
+    //     state.boards[0].shopping = { tier, tileId };
+    //   }),
+    //
+    // closeShopping: () =>
+    //   set((state) => {
+    //     const tileIndexToRemove = state.boards[0].tiles.findIndex(
+    //       (t) => t.id === state.boards[0].shopping?.tileId,
+    //     );
+    //     state.boards[0].tiles.splice(tileIndexToRemove, 1);
+    //     state.boards[0].shopping = null;
+    //   }),
 
-    openShopping: (tier: string, tileId: number) =>
-      set((state) => {
-        state.shopping = { tier, tileId };
-      }),
-
-    closeShopping: () =>
-      set((state) => {
-        const tileIndexToRemove = state.tiles.findIndex(
-          (t) => t.id === state.shopping?.tileId,
-        );
-        state.tiles.splice(tileIndexToRemove, 1);
-        state.shopping = null;
-      }),
-
-    move: (direction: Direction) =>
+    move: (direction: Direction, boardIndex = 0) =>
       set((state) => {
         // build traversals
         const vector = directionMap[direction];
         const traversals = buildTraversals(
           vector,
-          state.boardWidth,
-          state.boardHeight,
+          state.boards[boardIndex].boardWidth,
+          state.boards[boardIndex].boardHeight,
         );
         let moved = false;
 
@@ -142,7 +144,7 @@ export const useGameStore = create<GameState & Actions>()(
           traversals.y.forEach((yTrav) => {
             const currentCell = { x: xTrav, y: yTrav };
 
-            const tileHere = state.tiles.find(
+            const tileHere = state.boards[boardIndex].tiles.find(
               (t) =>
                 t.position.x === currentCell.x &&
                 t.position.y === currentCell.y,
@@ -152,24 +154,25 @@ export const useGameStore = create<GameState & Actions>()(
               const positions = findFarthestPosition(
                 currentCell,
                 vector,
-                state.tiles,
-                state.boardWidth,
-                state.boardHeight,
+                state.boards[boardIndex].tiles,
+                state.boards[boardIndex].boardWidth,
+                state.boards[boardIndex].boardHeight,
               );
 
-              const nextPotentialTile = state.tiles.find(
+              const nextPotentialTile = state.boards[boardIndex].tiles.find(
                 (t) =>
                   t.position.x === positions.next.x &&
                   t.position.y === positions.next.y,
               );
 
               if (nextPotentialTile) {
+                // we can merge in two scenarios; elemental cancellation,
+                // or equal values + names (i.e. fire2 + fire2 = fire4).
                 const elementalCollisionResult = elementsCollide(
                   tileHere,
                   nextPotentialTile,
                 );
                 if (
-                  // tilesCanMerge(tileHere, nextPotentialTile)
                   tileHere.name === nextPotentialTile.name &&
                   tileHere.value === nextPotentialTile.value
                 ) {
@@ -177,17 +180,17 @@ export const useGameStore = create<GameState & Actions>()(
                   tileHere.position = positions.next;
 
                   // delete the merging tiles
-                  const nextTileIx = state.tiles.findIndex(
+                  const nextTileIx = state.boards[boardIndex].tiles.findIndex(
                     (t) => t.id === nextPotentialTile.id,
                   );
-                  state.tiles.splice(nextTileIx, 1);
+                  state.boards[boardIndex].tiles.splice(nextTileIx, 1);
 
                   tileHere.position = positions.next;
                   // tileHere.value = nextPotentialTile.value + tileHere.value;
                   tileHere.value *= 2;
 
                   // update the score
-                  state.score += tileHere.value;
+                  state.boards[boardIndex].score += tileHere.value;
                 } else if (elementalCollisionResult) {
                   // move the tile that's about to be deleted so that it looks good
                   tileHere.position = positions.next;
@@ -202,24 +205,24 @@ export const useGameStore = create<GameState & Actions>()(
                   } else {
                     // losing tile is equal or less than winner, so it has to go.
                     // delete the losing tile
-                    const losingTileIx = state.tiles.findIndex(
-                      (t) => t.id === loser.id,
-                    );
-                    state.tiles.splice(losingTileIx, 1);
+                    const losingTileIx = state.boards[
+                      boardIndex
+                    ].tiles.findIndex((t) => t.id === loser.id);
+                    state.boards[boardIndex].tiles.splice(losingTileIx, 1);
 
                     tileHere.position = positions.next;
 
                     // if (winner.value === loser.value) {
                     //   // the winner also gets destroyed
-                    //   const winningTileIx = state.tiles.findIndex(
+                    //   const winningTileIx = state.boards[boardIndex].tiles.findIndex(
                     //     (t) => t.id === winner.id,
                     //   );
-                    //   state.tiles.splice(winningTileIx, 1);
+                    //   state.boards[boardIndex].tiles.splice(winningTileIx, 1);
                     // }
                   }
 
                   // update the score
-                  state.score += tileHere.value;
+                  state.boards[boardIndex].score += tileHere.value;
                 } else {
                   // no elemental collision, just move the current tile along.
                   tileHere.position = positions.farthest;
@@ -240,12 +243,15 @@ export const useGameStore = create<GameState & Actions>()(
 
         if (moved) {
           // add a random tile
-          state.tiles.push(
+          state.boards[boardIndex].tiles.push(
             addRandomTile(
-              state.tiles,
-              state.boardWidth,
-              state.boardHeight,
-              state.tilesToSpawn,
+              state.boards[boardIndex].tiles,
+              state.boards[boardIndex].boardWidth,
+              state.boards[boardIndex].boardHeight,
+              [
+                ...state.boards[boardIndex].baseTilesToSpawn,
+                ...state.boards[boardIndex].newTilesToSpawn,
+              ],
             ),
           );
         }
@@ -253,31 +259,48 @@ export const useGameStore = create<GameState & Actions>()(
 
     resetGame: () => {
       set((state) => {
-        state.score = 0;
-        state.gold = 0;
-        state.boardWidth = 5;
-        state.boardHeight = 5;
-        state.tiles = [];
-        // we want to spawn these 4 specific tiles
-        state.tilesToSpawn = [fireTile, waterTile, earthTile, airTile];
-        const tilesToAdd = state.tilesToSpawn.reduce((tta, option) => {
-          tta.push(
-            // @ts-expect-error stupid never
-            addRandomTile(tta, state.boardWidth, state.boardHeight, [option]),
-          );
-          return tta;
-        }, []);
-        state.tiles = state.tiles.concat(tilesToAdd);
-
-        // but after this, we want the spawn pool to be different... includes wildcards and 4-tiles.
-        state.tilesToSpawn = elementalTiles;
-
-        state.activeSpells = [];
-        state.activeSpells.push(rollActiveSpell());
+        const myBoard = initBoard(5, 5, elementalTiles, elementalTiles);
+        // const enemyBoard = initBoard(5, 5, elementalTiles, elementalTiles);
+        state.boards = [myBoard];
       });
     },
   })),
 );
+
+const initBoard = (
+  width: number,
+  height: number,
+  tilesToStart: Option[],
+  baseTilesToSpawn: Option[],
+) => {
+  const newSpell = rollActiveSpell();
+  const newBoardState: BoardState = {
+    score: 0,
+    boardWidth: width,
+    boardHeight: height,
+    tiles: [],
+    baseTilesToSpawn: tilesToStart,
+    newTilesToSpawn: newSpell.spell.spawns,
+    availableSpells: [],
+    activeSpell: 0,
+  };
+  const tilesToAdd = newBoardState.baseTilesToSpawn.reduce((tta, option) => {
+    tta.push(
+      // @ts-expect-error stupid never
+      addRandomTile(tta, newBoardState.boardWidth, newBoardState.boardHeight, [
+        option,
+      ]),
+    );
+    return tta;
+  }, []);
+  newBoardState.tiles = newBoardState.tiles.concat(tilesToAdd);
+
+  // but after this, we want the spawn pool to be different... includes wildcards and 4-tiles.
+  newBoardState.baseTilesToSpawn = baseTilesToSpawn;
+
+  newBoardState.availableSpells.push(newSpell);
+  return newBoardState;
+};
 
 const elementsCollide = (
   t1: Tile,

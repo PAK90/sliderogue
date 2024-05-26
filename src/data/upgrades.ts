@@ -1,5 +1,5 @@
 import { WritableDraft } from "immer";
-import { Actions, GameState, Tile } from "./state";
+import { Actions, GameState, Tile } from "../state";
 // import { tile8 } from "./tiles.ts";
 
 export type Upgrade = {

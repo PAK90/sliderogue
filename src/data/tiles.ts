@@ -1,4 +1,4 @@
-import { Option } from "./helpers/chooseWeightedOption.ts";
+import { Option } from "../helpers/chooseWeightedOption.ts";
 
 const tile2: Option = { id: "2", weight: 80, type: "NUMBER" };
 const tile4: Option = { id: "4", weight: 10, type: "NUMBER" };

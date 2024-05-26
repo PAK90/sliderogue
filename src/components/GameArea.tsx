@@ -1,24 +1,11 @@
-import range from "../helpers/range.ts";
 import { useGameStore } from "../state";
 import React, { useEffect } from "react";
-import TileRender from "./TileRender.tsx";
 import { useSwipeable } from "react-swipeable";
-import ShopDialog from "./ShopDialog.tsx";
-import SpellRender from "./SpellRender.tsx";
+// import ShopDialog from "./ShopDialog.tsx";
+import Board from "./Board.tsx";
 
 const GameArea = () => {
-  const {
-    boardWidth,
-    boardHeight,
-    // tilesToSpawn,
-    // setTilesToSpawn,
-    tiles,
-    move,
-    score,
-    // gold,
-    resetGame,
-    activeSpells,
-  } = useGameStore();
+  const { move, resetGame, boards } = useGameStore();
 
   const handlers = useSwipeable({
     onSwiped: (eventData) => console.log("User Swiped!", eventData),
@@ -30,6 +17,11 @@ const GameArea = () => {
   });
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // make a random move on the enemy board
+    // const randomDirection: Direction = ["up", "down", "left", "right"][
+    //   Math.floor(Math.random() * 4)
+    // ] as Direction;
+    // move(randomDirection, 1);
     switch (e.key) {
       case "ArrowUp":
         move("up");
@@ -67,9 +59,9 @@ const GameArea = () => {
       {/*  .map((option) => {*/}
       {/*    return <div>{option.id}</div>;*/}
       {/*  })}*/}
-      <ShopDialog />
+      {/*<ShopDialog />*/}
       <div className="flex">
-        <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}`}</div>
+        {/*<div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}`}</div>*/}
         {/*<div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${gold}`}</div>*/}
         <button
           className="m-1 p-0.5 rounded bg-green-200 duration-100 hover:bg-green-300 "
@@ -80,33 +72,14 @@ const GameArea = () => {
       </div>
       <div>
         {`Fire > Air > Earth > Water > Fire`}
-        {activeSpells.map((as, asIx) => (
-          <SpellRender key={asIx} activeSpell={as} />
-        ))}
+        {/*{activeSpells.map((as, asIx) => (*/}
+        {/*  <SpellRender key={asIx} activeSpell={as} />*/}
+        {/*))}*/}
       </div>
       <div className="w-full flex justify-center">
-        <div
-          className="w-full bg-gray-400 p-1"
-          style={{ position: "relative" }}
-        >
-          {tiles.map((tile) => (
-            <TileRender tile={tile} key={tile.id} />
-          ))}
-          {range(boardHeight).map((_, rIx) => {
-            return (
-              <div key={`${rIx}`} className="flex">
-                {range(boardWidth).map((_, cIx) => {
-                  return (
-                    <div
-                      key={`${rIx}${cIx}`}
-                      className="w-20 h-20 rounded bg-gray-200 m-1"
-                    ></div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
+        {boards.map((board, boardIx) => (
+          <Board board={board} key={boardIx} />
+        ))}
       </div>
     </div>
   );

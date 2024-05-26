@@ -23,11 +23,12 @@ const TileRender = ({ tile }: { tile: Tile }) => {
     E: "bg-green-300",
   };
 
-  const { activeSpells, enspellTile } = useGameStore();
+  const { boards, enspellTile } = useGameStore();
+  const { availableSpells } = boards[0];
 
   // hack considering there's only one active spell for now
   // TODO: make this work for N active spells
-  const activeSpell = activeSpells[0];
+  const activeSpell = availableSpells[0];
   const spellNeedsThisTile = activeSpell.spell.requiredTiles.find(
     (rt, rtIx) => {
       if (
@@ -53,7 +54,7 @@ const TileRender = ({ tile }: { tile: Tile }) => {
                   w-20 h-20 ${tileColourMap[tile.name as keyof typeof tileColourMap]} 
                   rounded flex items-center justify-center
                   animate-growIn
-                  ${spellNeedsThisTile && "border-4 border-green-300"}
+                  ${spellNeedsThisTile && "border-4 border-gray-900"}
                   ${spellNeedsThisTile && "cursor-pointer"}
                 `}
       style={{

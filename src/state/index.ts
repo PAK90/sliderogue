@@ -80,6 +80,7 @@ export const useGameStore = create<GameState & Actions>()(
           spell: newSpell,
           complete: newSpell.requiredTiles.map(() => false),
         };
+        state.boards[boardIx].newTilesToSpawn = newSpell.spawns;
       }),
 
     enspellTile: (tile: Tile) =>

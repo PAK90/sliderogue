@@ -292,7 +292,7 @@ export const useGameStore = create<GameState & Actions>()(
 const detectAnnihilations = (tiles: Tile[]) => {
   // for each tile, look up/down/left/right of it and see if there's a tile it will annihilate with
   const annihilationPairs: AnnihilationPair[] = [];
-  const checkedPos: string[] = [];
+  // const checkedPos: string[] = [];
 
   tiles.forEach((tile) => {
     // TODO; make this not find-based...
@@ -306,11 +306,14 @@ const detectAnnihilations = (tiles: Tile[]) => {
       const adjy = y + dCol[i];
 
       if (
-        (adjx >= 0 || adjy >= 0 || adjy < 5 || adjx < 5) &&
-        !checkedPos.includes(`${adjx}-${adjy}`)
+        adjx >= 0 ||
+        adjy >= 0 ||
+        adjy < 5 ||
+        adjx < 5
+        // !checkedPos.includes(`${adjx}-${adjy}`)
       ) {
         posToCheck.push({ x: adjx, y: adjy });
-        checkedPos.push(`${adjx}-${adjy}`);
+        // checkedPos.push(`${adjx}-${adjy}`);
       }
     }
 

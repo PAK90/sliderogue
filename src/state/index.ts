@@ -38,7 +38,7 @@ export type BoardState = {
   boardWidth: number;
   boardHeight: number;
   score: number;
-  imminentAnnihilations: Coordinate[];
+  imminentAnnihilations: AnnihilationPair[];
 
   baseTilesToSpawn: Option[];
   newTilesToSpawn: Option[];
@@ -270,6 +270,12 @@ export const useGameStore = create<GameState & Actions>()(
             ),
           );
         }
+
+        // check for which tiles are in position to be elementally annihilated.
+        state.boards[boardIndex].imminentAnnihilations = detectAnnihilations(
+          state.boards[boardIndex].tiles,
+        );
+        console.log(state.boards[boardIndex].imminentAnnihilations);
       }),
 
     resetGame: () => {
@@ -282,6 +288,46 @@ export const useGameStore = create<GameState & Actions>()(
     },
   })),
 );
+
+const detectAnnihilations = (tiles: Tile[]) => {
+  // for each tile, look up/down/left/right of it and see if there's a tile it will annihilate with
+  const annihilationPairs: AnnihilationPair[] = [];
+  const checkedPos: string[] = [];
+
+  tiles.forEach((tile) => {
+    // TODO; make this not find-based...
+    const posToCheck = [];
+    const dRow = [-1, 0, 1, 0];
+    const dCol = [0, 1, 0, -1];
+    const { x, y } = tile.position;
+
+    for (let i = 0; i < 4; i++) {
+      const adjx = x + dRow[i];
+      const adjy = y + dCol[i];
+
+      if (
+        (adjx >= 0 || adjy >= 0 || adjy < 5 || adjx < 5) &&
+        !checkedPos.includes(`${adjx}-${adjy}`)
+      ) {
+        posToCheck.push({ x: adjx, y: adjy });
+        checkedPos.push(`${adjx}-${adjy}`);
+      }
+    }
+
+    posToCheck.forEach((pos) => {
+      const tileToCheck = tiles.find(
+        (t) => t.position.x === pos.x && t.position.y === pos.y,
+      );
+      if (tileToCheck) {
+        const collisionResults = elementsCollide(tile, tileToCheck);
+        if (collisionResults && tileToCheck.value === tile.value) {
+          annihilationPairs.push(collisionResults as AnnihilationPair);
+        }
+      }
+    });
+  });
+  return annihilationPairs;
+};
 
 const initBoard = (
   width: number,
@@ -319,12 +365,11 @@ const initBoard = (
   return newBoardState;
 };
 
-const elementsCollide = (
-  t1: Tile,
-  t2: Tile,
-): { winner: Tile; loser: Tile } | boolean => {
+export type AnnihilationPair = { winner: Tile; loser: Tile };
+const elementsCollide = (t1: Tile, t2: Tile): AnnihilationPair | boolean => {
   // Takes in two elemental tiles and returns the winner
   // Returns false if it's not a destructive combo.
+  // for now, can only annihilate within range 1.
   if (
     Math.abs(t1.position.x - t2.position.x) === 1 ||
     Math.abs(t1.position.y - t2.position.y) === 1

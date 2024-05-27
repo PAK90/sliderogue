@@ -54,12 +54,13 @@ const TileRender = ({ tile }: { tile: Tile }) => {
                   w-20 h-20 ${tileColourMap[tile.name as keyof typeof tileColourMap]} 
                   rounded flex items-center justify-center
                   animate-growIn
+                  absolute
                   ${spellNeedsThisTile && "border-4 border-gray-900"}
                   ${spellNeedsThisTile && "cursor-pointer"}
                 `}
       style={{
         transformStyle: "preserve-3d",
-        position: "absolute",
+        // position: "absolute",
         left: tile.position.x * 80 + 8 + tile.position.x * 8,
         top: tile.position.y * 80 + 8 + tile.position.y * 8,
         transition: "top 100ms linear, left 100ms linear",

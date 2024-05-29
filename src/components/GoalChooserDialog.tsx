@@ -1,10 +1,10 @@
 import { useGameStore } from "../state";
-import { rollRandomSpell, Spell } from "../data/spells.ts";
+import { rollRandomSpell, Spell, spells } from "../data/spells.ts";
 import SpellRender from "./SpellRender.tsx";
 
 const GoalChooserDialog = () => {
   const { choosing, setChoosing, setActiveSpell, boards } = useGameStore();
-  const activeSpell = boards[0].availableSpells[0]; // TODO: make this not fixed to 0.
+  const activeSpell = boards[0]?.availableSpells[boards[0]?.activeSpell]; // TODO: make this not fixed to 0.
 
   const spellChoiceHandler = (chosenSpell: Spell) => {
     setChoosing(); // toggle off the dialog
@@ -13,16 +13,15 @@ const GoalChooserDialog = () => {
 
   const choiceOfThree: Spell[] = [];
 
-  while (choiceOfThree.length < 3) {
-    const potentialNewSpell = rollRandomSpell();
-    if (
-      !choiceOfThree.find(
-        (s) =>
-          s.name === potentialNewSpell.name ||
-          s.name === activeSpell.spell.name,
-      )
-    ) {
-      choiceOfThree.push(potentialNewSpell);
+  if (choosing) {
+    while (choiceOfThree.length < Math.min(3, spells.length)) {
+      const potentialNewSpell = rollRandomSpell();
+      if (
+        !choiceOfThree.find((s) => s.name === potentialNewSpell.name) &&
+        potentialNewSpell.name !== activeSpell?.spell.name
+      ) {
+        choiceOfThree.push(potentialNewSpell);
+      }
     }
   }
 

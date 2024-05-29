@@ -55,6 +55,7 @@ const TileRender = ({ tile }: { tile: Tile }) => {
                   rounded flex items-center justify-center
                   animate-growIn
                   absolute
+                  pointer-events-none
                   ${spellNeedsThisTile && "border-4 border-gray-900"}
                   ${spellNeedsThisTile && "cursor-pointer"}
                 `}
@@ -64,7 +65,6 @@ const TileRender = ({ tile }: { tile: Tile }) => {
         left: tile.position.x * 80 + 8 + tile.position.x * 8,
         top: tile.position.y * 80 + 8 + tile.position.y * 8,
         transition: "top 100ms linear, left 100ms linear",
-        // opacity: `${Math.sqrt(tile.value) * 20}%`,
       }}
     >
       <span className="text-gray-600 font-bold text-3xl">{tile.value}</span>

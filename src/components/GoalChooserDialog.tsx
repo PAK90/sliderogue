@@ -27,6 +27,7 @@ const GoalChooserDialog = () => {
       >
         {choiceOfThree.map((spell) => (
           <div
+            key={spell.name}
             className="border-gray-900 border-2 cursor-pointer bg-gray-300 rounded"
             onClick={() => spellChoiceHandler(spell)}
           >

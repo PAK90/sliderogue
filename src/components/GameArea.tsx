@@ -63,7 +63,6 @@ const GameArea = () => {
       {/*<ShopDialog />*/}
       <GoalChooserDialog />
       <div className="flex">
-        {/*<div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}`}</div>*/}
         {/*<div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${gold}`}</div>*/}
         <button
           className="m-1 p-0.5 rounded bg-green-200 duration-100 hover:bg-green-300 "
@@ -73,14 +72,14 @@ const GameArea = () => {
         </button>
       </div>
       <div>
-        {`Fire > Air > Earth > Water > Fire`}
+        {/*{`Fire > Air > Earth > Water > Fire`}*/}
         {/*{activeSpells.map((as, asIx) => (*/}
         {/*  <SpellRender key={asIx} activeSpell={as} />*/}
         {/*))}*/}
       </div>
       <div className="w-full flex justify-center">
         {boards.map((board, boardIx) => (
-          <Board board={board} key={boardIx} />
+          <Board board={board} key={boardIx} boardIndex={boardIx} />
         ))}
       </div>
     </div>

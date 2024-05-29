@@ -107,20 +107,20 @@ const staticsparkSpell: Spell = {
 //   ],
 // };
 
-const rainbowSpell: Spell = {
-  name: "Taste the Rainbow",
-  requiredTiles: [
-    { tileName: fireTile.id, tileValue: 8 },
-    { tileName: waterTile.id, tileValue: 8 },
-    { tileName: earthTile.id, tileValue: 8 },
-    { tileName: airTile.id, tileValue: 8 },
-  ],
-  spawns: [],
-};
+// const rainbowSpell: Spell = {
+//   name: "Taste the Rainbow",
+//   requiredTiles: [
+//     { tileName: fireTile.id, tileValue: 8 },
+//     { tileName: waterTile.id, tileValue: 8 },
+//     { tileName: earthTile.id, tileValue: 8 },
+//     { tileName: airTile.id, tileValue: 8 },
+//   ],
+//   spawns: [],
+// };
 
 export const spells = [
   steamSpell,
-  rainbowSpell,
+  // rainbowSpell,
   lavaSpell,
   staticsparkSpell,
   mistySpell,

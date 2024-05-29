@@ -5,7 +5,7 @@ import { immer } from "zustand/middleware/immer";
 import { addRandomTile } from "../helpers/addRandomTile.ts";
 // import { defaultTiles } from "../tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
-import { elemental4Tiles, elementalTiles } from "../data/tiles.ts";
+// import { elemental4Tiles, elementalTiles } from "../data/tiles.ts";
 import { rollActiveSpellData, Spell } from "../data/spells.ts";
 // import range from "../helpers/range.ts";
 
@@ -131,6 +131,8 @@ export const useGameStore = create<GameState & Actions>()(
           complete: newSpell.requiredTiles.map(() => false),
         };
         state.boards[boardIx].newTilesToSpawn = newSpell.spawns;
+        // FIXME; for now it's just me wanting each spell to have only their own colours come in.
+        state.boards[boardIx].baseTilesToSpawn = newSpell.spawns;
       }),
 
     enspellTile: (tile: Tile) =>
@@ -331,7 +333,14 @@ export const useGameStore = create<GameState & Actions>()(
 
     resetGame: () => {
       set((state) => {
-        const myBoard = initBoard(5, 5, elementalTiles, elemental4Tiles);
+        const newSpell = rollActiveSpellData();
+        const myBoard = initBoard(
+          5,
+          5,
+          newSpell.spell.spawns,
+          newSpell.spell.spawns,
+          newSpell,
+        );
         // const enemyBoard = initBoard(5, 5, elementalTiles, elementalTiles);
         state.boards = [myBoard];
         state.choosing = false;
@@ -388,8 +397,8 @@ const initBoard = (
   height: number,
   tilesToStart: Option[],
   baseTilesToSpawn: Option[],
+  newSpell: { spell: Spell; complete: boolean[] },
 ) => {
-  const newSpell = rollActiveSpellData();
   const newBoardState: BoardState = {
     score: 0,
     mana: 0,

@@ -3,7 +3,7 @@ import range from "../helpers/range.ts";
 import { BoardState, Coordinate, useGameStore } from "../state";
 import SpellRender from "./SpellRender.tsx";
 import AnnihilationBorder from "./AnnihilationBorder.tsx";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ConnectionRender from "./ConnectionRender.tsx";
 
 const Board = ({
@@ -20,11 +20,20 @@ const Board = ({
     imminentAnnihilations,
     draggedCells,
     mana,
+    spellsCompleted,
   } = board;
   const { setDraggedPath, useDraggedPath } = useGameStore();
 
   const [drawing, setDrawing] = useState(false);
-  console.log(draggedCells);
+
+  const spellsCompletedRecord =
+    localStorage.getItem("spellsCompletedRecord") || "0";
+
+  useEffect(() => {
+    if (spellsCompleted > parseInt(spellsCompletedRecord)) {
+      localStorage.setItem("spellsCompletedRecord", spellsCompleted.toString());
+    }
+  }, [spellsCompleted, spellsCompletedRecord]);
 
   const handleMouseDown = useCallback(
     (cell: Coordinate) => {
@@ -63,6 +72,9 @@ const Board = ({
 
   return (
     <div className="flex-col">
+      <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">
+        {`Patterns completed (/record): ${spellsCompleted}/${spellsCompletedRecord}`}
+      </div>
       <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Mana: ${mana}`}</div>
       <div
         className={`${draggedCells.length * 10 > mana ? "bg-red-200" : "bg-indigo-200"} w-fit m-1 p-0.5 rounded`}

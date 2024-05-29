@@ -39,6 +39,7 @@ export type BoardState = {
   boardHeight: number;
   score: number;
   mana: number;
+  spellsCompleted: number;
   imminentAnnihilations: AnnihilationPair[];
 
   baseTilesToSpawn: Option[];
@@ -100,6 +101,7 @@ export const useGameStore = create<GameState & Actions>()(
             ),
         );
         if (satisfiesActiveSpell) {
+          // congrats, the pattern was completed!
           state.choosing = true;
           state.boards[boardIndex].tiles = draggedTiles.reduce(
             (tileState, draggedTile) => {
@@ -110,6 +112,7 @@ export const useGameStore = create<GameState & Actions>()(
             state.boards[boardIndex].tiles,
           );
           state.boards[boardIndex].mana -= draggedTiles.length * 10;
+          state.boards[boardIndex].spellsCompleted += 1;
         }
         state.boards[boardIndex].draggedCells = [];
       }),
@@ -402,6 +405,7 @@ const initBoard = (
   const newBoardState: BoardState = {
     score: 0,
     mana: 0,
+    spellsCompleted: 0,
     imminentAnnihilations: [],
     boardWidth: width,
     boardHeight: height,

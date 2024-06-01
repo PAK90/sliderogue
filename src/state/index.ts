@@ -5,9 +5,9 @@ import { immer } from "zustand/middleware/immer";
 import { addRandomTile } from "../helpers/addRandomTile.ts";
 // import { defaultTiles } from "../tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
-// import { elemental4Tiles, elementalTiles } from "../data/tiles.ts";
-import { rollActiveSpellData, Spell } from "../data/spells.ts";
-// import range from "../helpers/range.ts";
+import { defaultDeck, defaultTiles } from "../data/tiles.ts";
+import { chooseEmptyTilePosition } from "../helpers/chooseEmptyTilePosition.ts";
+import { chooseTilesFromBag } from "../helpers/chooseTilesFromBag.ts";
 
 export type Direction = "up" | "down" | "left" | "right";
 
@@ -39,145 +39,35 @@ export type BoardState = {
   boardHeight: number;
   score: number;
   mana: number;
-  spellsCompleted: number;
-  imminentAnnihilations: AnnihilationPair[];
 
-  baseTilesToSpawn: Option[];
+  deck: Option[];
+
+  // keeping this around in case we want to spawn tiles not out of the deck, which seems likely...
+  // spawns from joker/artifact type things.
   newTilesToSpawn: Option[];
-  availableSpells: { spell: Spell; complete: boolean[] }[];
-  activeSpell: number;
-  draggedCells: Coordinate[];
 };
 
 export type GameState = {
   boards: BoardState[];
-  choosing: boolean;
 };
 
 export type Actions = {
   move: (direction: Direction, boardIndex?: number) => void;
   resetGame: () => void;
-  setChoosing: () => void;
   // openShopping: (tier: string, tileId: number) => void;
   // closeShopping: () => void;
   // applyUpgrade: (u: Upgrade) => void;
-  setTilesToSpawn: (t: Option[]) => void;
-  enspellTile: (t: Tile) => void;
-  setActiveSpell: (newSpell: Spell, boardIx: number) => void;
-  setDraggedPath: (c: Coordinate[], boardIndex: number) => void;
-  useDraggedPath: (boardIndex: number) => void;
+  // setTilesToSpawn: (t: Option[]) => void;
 };
 
 export const useGameStore = create<GameState & Actions>()(
   immer((set) => ({
-    choosing: false,
     boards: [],
-    imminentAnnihilations: [],
 
-    useDraggedPath: (boardIndex: number) =>
-      set((state) => {
-        const draggedTiles: Tile[] = [];
-        state.boards[boardIndex].draggedCells.forEach((dCell) => {
-          // see if we have a tile in this cell
-          const potentialCell = state.boards[boardIndex].tiles.find(
-            (t) => t.position.x === dCell.x && t.position.y === dCell.y,
-          );
-
-          if (potentialCell) {
-            draggedTiles.push(potentialCell);
-          }
-        });
-        // see if the active spell's requirements have been met by the dragged tiles.
-        const activeSpell =
-          state.boards[boardIndex].availableSpells[
-            state.boards[boardIndex].activeSpell
-          ];
-        // TODO: make this only be satisfied if the start and end tiles are required.
-        const satisfiesActiveSpell = activeSpell.spell.requiredTiles.every(
-          (reqTile) =>
-            draggedTiles.find(
-              (dt) =>
-                dt.name === reqTile.tileName && dt.value === reqTile.tileValue,
-            ),
-        );
-        if (satisfiesActiveSpell) {
-          // congrats, the pattern was completed!
-          state.choosing = true;
-          state.boards[boardIndex].tiles = draggedTiles.reduce(
-            (tileState, draggedTile) => {
-              const dtIx = tileState.findIndex((t) => t.id === draggedTile.id);
-              tileState.splice(dtIx, 1);
-              return tileState;
-            },
-            state.boards[boardIndex].tiles,
-          );
-          state.boards[boardIndex].mana -= draggedTiles.length * 10;
-          state.boards[boardIndex].spellsCompleted += 1;
-        }
-        state.boards[boardIndex].draggedCells = [];
-      }),
-
-    setDraggedPath: (c: Coordinate[], boardIndex: number) =>
-      set((state) => {
-        state.boards[boardIndex].draggedCells = c;
-      }),
-
-    setChoosing: () =>
-      set((state) => {
-        state.choosing = !state.choosing;
-      }),
-
-    setActiveSpell: (newSpell: Spell, boardIx: number) =>
-      set((state) => {
-        state.boards[boardIx].availableSpells[0] = {
-          spell: newSpell,
-          complete: newSpell.requiredTiles.map(() => false),
-        };
-        state.boards[boardIx].newTilesToSpawn = newSpell.spawns;
-        // FIXME; for now it's just me wanting each spell to have only their own colours come in.
-        state.boards[boardIx].baseTilesToSpawn = newSpell.spawns;
-      }),
-
-    enspellTile: (tile: Tile) =>
-      set((state) => {
-        const activeSpell =
-          state.boards[0].availableSpells[state.boards[0].activeSpell];
-
-        const slotToFillIx = activeSpell.spell.requiredTiles.findIndex(
-          (rt, rtIx) => {
-            return (
-              !activeSpell.complete[rtIx] &&
-              rt.tileName === tile.name &&
-              rt.tileValue === tile.value
-            );
-          },
-        );
-
-        if (slotToFillIx > -1) {
-          // shouldn't need this if statement, but you never know
-          activeSpell.complete[slotToFillIx] = true;
-        }
-
-        // if the spell is now complete, let the player roll a new one
-        if (activeSpell.complete.every(Boolean)) {
-          // const newSpell = rollActiveSpellData();
-          // state.boards[0].availableSpells = [newSpell];
-          // state.boards[0].newTilesToSpawn = newSpell.spell.spawns;
-          // TODO: do the spell effect
-          state.choosing = true;
-        }
-
-        // delete the tile that's now 'in' the spell
-        const enspelledTile = state.boards[0].tiles.findIndex(
-          (t) => t.id === tile.id,
-        );
-        state.boards[0].tiles.splice(enspelledTile, 1);
-      }),
-
-    setTilesToSpawn: (o: Option[]) =>
-      set((state) => {
-        state.boards[0].baseTilesToSpawn = o;
-      }),
+    // setTilesToSpawn: (o: Option[]) =>
+    //   set((state) => {
+    //     // state.boards[0].baseTilesToSpawn = o;
+    //   }),
 
     // applyUpgrade: (upgrade: Upgrade) =>
     //   set((state) => {
@@ -235,69 +125,26 @@ export const useGameStore = create<GameState & Actions>()(
                   t.position.y === positions.next.y,
               );
 
-              if (nextPotentialTile) {
-                // we can merge in two scenarios; elemental cancellation,
-                // or equal values + names (i.e. fire2 + fire2 = fire4).
-                const elementalCollisionResult = elementsCollide(
-                  tileHere,
-                  nextPotentialTile,
+              if (
+                nextPotentialTile &&
+                // tileHere.name === nextPotentialTile.name &&
+                tileHere.value === nextPotentialTile.value
+              ) {
+                // move the tile that's about to be deleted so that it looks good
+                tileHere.position = positions.next;
+
+                // delete the merging tiles
+                const nextTileIx = state.boards[boardIndex].tiles.findIndex(
+                  (t) => t.id === nextPotentialTile.id,
                 );
-                if (
-                  tileHere.name === nextPotentialTile.name &&
-                  tileHere.value === nextPotentialTile.value
-                ) {
-                  // move the tile that's about to be deleted so that it looks good
-                  tileHere.position = positions.next;
+                state.boards[boardIndex].tiles.splice(nextTileIx, 1);
 
-                  // delete the merging tiles
-                  const nextTileIx = state.boards[boardIndex].tiles.findIndex(
-                    (t) => t.id === nextPotentialTile.id,
-                  );
-                  state.boards[boardIndex].tiles.splice(nextTileIx, 1);
+                tileHere.position = positions.next;
+                // tileHere.value = nextPotentialTile.value + tileHere.value;
+                tileHere.value *= 2;
 
-                  tileHere.position = positions.next;
-                  // tileHere.value = nextPotentialTile.value + tileHere.value;
-                  tileHere.value *= 2;
-
-                  // update the score... and mana.
-                  state.boards[boardIndex].score += tileHere.value;
-                  state.boards[boardIndex].mana += tileHere.value;
-                } else if (elementalCollisionResult) {
-                  // move the tile that's about to be deleted so that it looks good
-                  tileHere.position = positions.next;
-                  const { winner, loser } = elementalCollisionResult as {
-                    winner: Tile;
-                    loser: Tile;
-                  };
-
-                  if (winner.value !== loser.value) {
-                    // e.g. water2 can't destroy a fire4
-                    tileHere.position = positions.farthest;
-                  } else {
-                    // losing tile is equal or less than winner, so it has to go.
-                    // delete the losing tile
-                    const losingTileIx = state.boards[
-                      boardIndex
-                    ].tiles.findIndex((t) => t.id === loser.id);
-                    state.boards[boardIndex].tiles.splice(losingTileIx, 1);
-
-                    tileHere.position = positions.next;
-
-                    // if (winner.value === loser.value) {
-                    //   // the winner also gets destroyed
-                    //   const winningTileIx = state.boards[boardIndex].tiles.findIndex(
-                    //     (t) => t.id === winner.id,
-                    //   );
-                    //   state.boards[boardIndex].tiles.splice(winningTileIx, 1);
-                    // }
-                  }
-
-                  // update the score
-                  state.boards[boardIndex].score += tileHere.value;
-                } else {
-                  // no elemental collision, just move the current tile along.
-                  tileHere.position = positions.farthest;
-                }
+                // update the score... and mana.
+                state.boards[boardIndex].score += tileHere.value;
               } else {
                 // no tile collision, just move the current tile along.
                 tileHere.position = positions.farthest;
@@ -319,146 +166,66 @@ export const useGameStore = create<GameState & Actions>()(
               state.boards[boardIndex].tiles,
               state.boards[boardIndex].boardWidth,
               state.boards[boardIndex].boardHeight,
-              [
-                ...state.boards[boardIndex].baseTilesToSpawn,
-                ...state.boards[boardIndex].newTilesToSpawn,
-              ],
+              [...state.boards[boardIndex].newTilesToSpawn],
             ),
           );
         }
-
-        // check for which tiles are in position to be elementally annihilated.
-        // state.boards[boardIndex].imminentAnnihilations = detectAnnihilations(
-        //   state.boards[boardIndex].tiles,
-        // );
-        // console.log(state.boards[boardIndex].imminentAnnihilations);
       }),
 
     resetGame: () => {
       set((state) => {
-        const newSpell = rollActiveSpellData();
-        const myBoard = initBoard(
-          5,
-          5,
-          newSpell.spell.spawns,
-          newSpell.spell.spawns,
-          newSpell,
-        );
-        // const enemyBoard = initBoard(5, 5, elementalTiles, elementalTiles);
+        // TODO: insert a deck of tiles here.
+        const myBoard = initBoard(4, 4, defaultDeck);
         state.boards = [myBoard];
-        state.choosing = false;
       });
     },
   })),
 );
 
-// const detectAnnihilations = (tiles: Tile[]) => {
-//   // for each tile, look up/down/left/right of it and see if there's a tile it will annihilate with
-//   const annihilationPairs: AnnihilationPair[] = [];
-//   // const checkedPos: string[] = [];
-//
-//   tiles.forEach((tile) => {
-//     // TODO; make this not find-based...
-//     const posToCheck = [];
-//     const dRow = [-1, 0, 1, 0];
-//     const dCol = [0, 1, 0, -1];
-//     const { x, y } = tile.position;
-//
-//     for (let i = 0; i < 4; i++) {
-//       const adjx = x + dRow[i];
-//       const adjy = y + dCol[i];
-//
-//       if (
-//         adjx >= 0 ||
-//         adjy >= 0 ||
-//         adjy < 5 ||
-//         adjx < 5
-//         // !checkedPos.includes(`${adjx}-${adjy}`)
-//       ) {
-//         posToCheck.push({ x: adjx, y: adjy });
-//         // checkedPos.push(`${adjx}-${adjy}`);
-//       }
-//     }
-//
-//     posToCheck.forEach((pos) => {
-//       const tileToCheck = tiles.find(
-//         (t) => t.position.x === pos.x && t.position.y === pos.y,
-//       );
-//       if (tileToCheck) {
-//         const collisionResults = elementsCollide(tile, tileToCheck);
-//         if (collisionResults && tileToCheck.value === tile.value) {
-//           annihilationPairs.push(collisionResults as AnnihilationPair);
-//         }
-//       }
-//     });
-//   });
-//   return annihilationPairs;
-// };
-
 const initBoard = (
   width: number,
   height: number,
-  tilesToStart: Option[],
-  baseTilesToSpawn: Option[],
-  newSpell: { spell: Spell; complete: boolean[] },
+  // tilesToStart: Option[],
+  // baseTilesToSpawn: Option[],
+  deckOfTiles: Option[],
 ) => {
   const newBoardState: BoardState = {
     score: 0,
     mana: 0,
-    spellsCompleted: 0,
-    imminentAnnihilations: [],
     boardWidth: width,
     boardHeight: height,
     tiles: [],
-    baseTilesToSpawn: tilesToStart,
-    newTilesToSpawn: newSpell.spell.spawns,
-    availableSpells: [],
-    activeSpell: 0,
-    draggedCells: [],
+    newTilesToSpawn: [],
+    deck: deckOfTiles,
+    // newTilesToSpawn: [],
   };
-  const tilesToAdd = newBoardState.baseTilesToSpawn.reduce((tta, option) => {
-    tta.push(
-      // @ts-expect-error stupid never
-      addRandomTile(tta, newBoardState.boardWidth, newBoardState.boardHeight, [
-        option,
-      ]),
-    );
-    return tta;
-  }, []);
-  newBoardState.tiles = newBoardState.tiles.concat(tilesToAdd);
+  // const tilesToAdd = newBoardState.baseTilesToSpawn.reduce((tta, option) => {
+  //   tta.push(
+  //     // @ts-expect-error stupid never
+  //     addRandomTile(tta, newBoardState.boardWidth, newBoardState.boardHeight, [
+  //       option,
+  //     ]),
+  //   );
+  //   return tta;
+  // }, []);
+  // newBoardState.tiles = newBoardState.tiles.concat(tilesToAdd);
+  //
+  // // but after this, we want the spawn pool to be different... includes wildcards and 4-tiles.
+  // newBoardState.baseTilesToSpawn = baseTilesToSpawn;
 
-  // but after this, we want the spawn pool to be different... includes wildcards and 4-tiles.
-  newBoardState.baseTilesToSpawn = baseTilesToSpawn;
+  const startingSpots = [0, 1].reduce(
+    (chosenCells) => {
+      return [
+        ...chosenCells,
+        chooseEmptyTilePosition(width, height, chosenCells),
+      ];
+    },
+    [] as { position: Coordinate }[],
+  );
 
-  newBoardState.availableSpells.push(newSpell);
+  const { deck, chosenTiles } = chooseTilesFromBag(deckOfTiles, 2);
+
   return newBoardState;
-};
-
-export type AnnihilationPair = { winner: Tile; loser: Tile };
-const elementsCollide = (t1: Tile, t2: Tile): AnnihilationPair | boolean => {
-  // Takes in two elemental tiles and returns the winner
-  // Returns false if it's not a destructive combo.
-  // for now, can only annihilate within range 1.
-  return false;
-  if (
-    Math.abs(t1.position.x - t2.position.x) === 1 ||
-    Math.abs(t1.position.y - t2.position.y) === 1
-  ) {
-    const winningMap = {
-      F: "A",
-      A: "E",
-      E: "W",
-      W: "F",
-    };
-    // @ts-expect-error don't know how to fix
-    if (winningMap[t1.name] === t2.name) {
-      return { winner: t1, loser: t2 };
-      // @ts-expect-error don't know how to fix
-    } else if (winningMap[t2.name] === t1.name) {
-      return { winner: t2, loser: t1 };
-    }
-  }
-  return false;
 };
 
 // const tilesCanMerge = (t1: Tile, t2: Tile) => {

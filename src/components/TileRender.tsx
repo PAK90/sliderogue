@@ -1,4 +1,4 @@
-import { Tile, useGameStore } from "../state";
+import { Tile } from "../state";
 
 const TileRender = ({ tile }: { tile: Tile }) => {
   const tileColourMap = {
@@ -23,41 +23,14 @@ const TileRender = ({ tile }: { tile: Tile }) => {
     E: "bg-green-300",
   };
 
-  const { boards, enspellTile } = useGameStore();
-  const { availableSpells } = boards[0];
-
-  // hack considering there's only one active spell for now
-  // TODO: make this work for N active spells
-  const activeSpell = availableSpells[0];
-  const spellNeedsThisTile = activeSpell.spell.requiredTiles.find(
-    (rt, rtIx) => {
-      if (
-        rt.tileValue === tile.value &&
-        rt.tileName === tile.name &&
-        !activeSpell.complete[rtIx]
-      ) {
-        return true;
-      }
-    },
-  );
-
-  const handleTileClick = () => {
-    if (spellNeedsThisTile) {
-      enspellTile(tile);
-    }
-  };
-
   return (
     <div
-      onClick={handleTileClick}
       className={`
-                  w-20 h-20 ${tileColourMap[tile.name as keyof typeof tileColourMap]} 
+                  w-20 h-20 ${tileColourMap[tile.value as keyof typeof tileColourMap]} 
                   rounded flex items-center justify-center
                   animate-growIn
                   absolute
                   pointer-events-none
-                  ${spellNeedsThisTile && "border-4 border-gray-900"}
-                  ${spellNeedsThisTile && "cursor-pointer"}
                 `}
       style={{
         transformStyle: "preserve-3d",
@@ -68,12 +41,12 @@ const TileRender = ({ tile }: { tile: Tile }) => {
       }}
     >
       <span className="text-gray-600 font-bold text-3xl">{tile.value}</span>
-      <span
-        style={{ position: "absolute", top: 4, left: 4 }}
-        className="text-gray-700 font-bold text-xl"
-      >
-        {tile.name}
-      </span>
+      {/*<span*/}
+      {/*  style={{ position: "absolute", top: 4, left: 4 }}*/}
+      {/*  className="text-gray-700 font-bold text-xl"*/}
+      {/*>*/}
+      {/*  {tile.name}*/}
+      {/*</span>*/}
     </div>
   );
 };

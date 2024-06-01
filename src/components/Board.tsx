@@ -20,6 +20,7 @@ const Board = ({
     imminentAnnihilations,
     draggedCells,
     mana,
+    gold,
     spellsCompleted,
   } = board;
   const { setDraggedPath, useDraggedPath } = useGameStore();
@@ -72,9 +73,10 @@ const Board = ({
 
   return (
     <div className="flex-col">
-      <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">
+      <div className="bg-green-200 w-fit m-1 p-0.5 rounded">
         {`Patterns completed (/record): ${spellsCompleted}/${spellsCompletedRecord}`}
       </div>
+      <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${gold}`}</div>
       <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Mana: ${mana}`}</div>
       <div
         className={`${draggedCells.length * 10 > mana ? "bg-red-200" : "bg-indigo-200"} w-fit m-1 p-0.5 rounded`}

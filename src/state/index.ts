@@ -39,6 +39,7 @@ export type BoardState = {
   boardHeight: number;
   score: number;
   mana: number;
+  gold: number;
   spellsCompleted: number;
   imminentAnnihilations: AnnihilationPair[];
 
@@ -113,6 +114,9 @@ export const useGameStore = create<GameState & Actions>()(
           );
           state.boards[boardIndex].mana -= draggedTiles.length * 10;
           state.boards[boardIndex].spellsCompleted += 1;
+          state.boards[boardIndex].gold += state.boards[
+            boardIndex
+          ].tiles.reduce((total, t) => total + t.value, 0);
         }
         state.boards[boardIndex].draggedCells = [];
       }),
@@ -405,6 +409,7 @@ const initBoard = (
   const newBoardState: BoardState = {
     score: 0,
     mana: 0,
+    gold: 0,
     spellsCompleted: 0,
     imminentAnnihilations: [],
     boardWidth: width,

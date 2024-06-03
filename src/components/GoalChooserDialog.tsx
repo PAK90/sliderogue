@@ -1,36 +1,49 @@
 import { useGameStore } from "../state";
 import { rollRandomSpell, Spell, spells } from "../data/spells.ts";
 import SpellRender from "./SpellRender.tsx";
+import { useEffect, useState } from "react";
 
 const GoalChooserDialog = () => {
-  const { choosing, setChoosing, setActiveSpell, boards } = useGameStore();
-  const activeSpell = boards[0]?.availableSpells[boards[0]?.activeSpell]; // TODO: make this not fixed to 0.
+  const { choosing, setChoosing, setActiveSpell, boards, openShopping } =
+    useGameStore();
+  // TODO: make this not fixed to 0.
+  const activeSpell = boards[0]?.availableSpells[boards[0]?.activeSpell];
+
+  const [isTransparent, setIsTransparent] = useState(false);
+  const [choiceOfThree, setChoiceOfThree] = useState<Spell[]>([]);
 
   const spellChoiceHandler = (chosenSpell: Spell) => {
     setChoosing(); // toggle off the dialog
     setActiveSpell(chosenSpell, 0);
+    openShopping();
   };
 
-  const choiceOfThree: Spell[] = [];
-
-  if (choosing) {
-    while (choiceOfThree.length < Math.min(3, spells.length)) {
+  useEffect(() => {
+    const choices: Spell[] = [];
+    while (choices.length < Math.min(3, spells.length)) {
       const potentialNewSpell = rollRandomSpell();
       if (
-        !choiceOfThree.find((s) => s.name === potentialNewSpell.name) &&
+        !choices.find((s) => s.name === potentialNewSpell.name) &&
         potentialNewSpell.name !== activeSpell?.spell.name
       ) {
-        choiceOfThree.push(potentialNewSpell);
+        choices.push(potentialNewSpell);
       }
     }
-  }
+    setChoiceOfThree(choices);
+  }, [activeSpell?.spell.name, choosing]);
 
   return (
     <>
       <div
         hidden={!choosing}
-        className="bg-gray-200 shadow-2xl absolute top-1/4 left-1/4 w-1/2 h-1/2 z-20"
+        className={`
+          ${isTransparent ? "opacity-20" : "opacity-100"}
+          bg-gray-200 shadow-2xl absolute top-1/4 left-1/4 w-1/2 h-fit z-20
+        `}
       >
+        <button onClick={() => setIsTransparent(!isTransparent)}>
+          Click here to see/unsee grid
+        </button>
         {choiceOfThree.map((spell) => (
           <div
             key={spell.name}

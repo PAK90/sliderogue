@@ -20,7 +20,7 @@ const widthUpgrade: Upgrade = {
     state.boards[0].boardWidth++;
     return state;
   },
-  cost: 4,
+  cost: 50,
   tier: 2,
   weight: 100,
 };
@@ -32,7 +32,7 @@ const heightUpgrade: Upgrade = {
     state.boards[0].boardHeight++;
     return state;
   },
-  cost: 4,
+  cost: 50,
   tier: 2,
   weight: 100,
 };
@@ -66,7 +66,7 @@ const shuffle: Upgrade = {
     state.boards[0].tiles = randomTiles;
     return state;
   },
-  cost: 2,
+  cost: 40,
   tier: 1,
   weight: 100,
 };

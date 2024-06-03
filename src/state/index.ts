@@ -7,6 +7,7 @@ import { addRandomTile } from "../helpers/addRandomTile.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
 // import { elemental4Tiles, elementalTiles } from "../data/tiles.ts";
 import { rollActiveSpellData, Spell } from "../data/spells.ts";
+import { Upgrade } from "../data/upgrades.ts";
 // import range from "../helpers/range.ts";
 
 export type Direction = "up" | "down" | "left" | "right";
@@ -53,15 +54,16 @@ export type BoardState = {
 export type GameState = {
   boards: BoardState[];
   choosing: boolean;
+  shopping: boolean;
 };
 
 export type Actions = {
   move: (direction: Direction, boardIndex?: number) => void;
   resetGame: () => void;
   setChoosing: () => void;
-  // openShopping: (tier: string, tileId: number) => void;
-  // closeShopping: () => void;
-  // applyUpgrade: (u: Upgrade) => void;
+  openShopping: () => void;
+  closeShopping: () => void;
+  applyUpgrade: (u: Upgrade) => void;
   setTilesToSpawn: (t: Option[]) => void;
   enspellTile: (t: Tile) => void;
   setActiveSpell: (newSpell: Spell, boardIx: number) => void;
@@ -72,6 +74,7 @@ export type Actions = {
 export const useGameStore = create<GameState & Actions>()(
   immer((set) => ({
     choosing: false,
+    shopping: false,
     boards: [],
     imminentAnnihilations: [],
 
@@ -183,28 +186,30 @@ export const useGameStore = create<GameState & Actions>()(
         state.boards[0].baseTilesToSpawn = o;
       }),
 
-    // applyUpgrade: (upgrade: Upgrade) =>
-    //   set((state) => {
-    //     state = upgrade.stateUpdater(state);
-    //     state.boards[0].gold -= upgrade.cost;
-    //   }),
-    //
-    // openShopping: (tier: string, tileId: number) =>
-    //   set((state) => {
-    //     state.boards[0].shopping = { tier, tileId };
-    //   }),
-    //
-    // closeShopping: () =>
-    //   set((state) => {
-    //     const tileIndexToRemove = state.boards[0].tiles.findIndex(
-    //       (t) => t.id === state.boards[0].shopping?.tileId,
-    //     );
-    //     state.boards[0].tiles.splice(tileIndexToRemove, 1);
-    //     state.boards[0].shopping = null;
-    //   }),
+    applyUpgrade: (upgrade: Upgrade) =>
+      set((state) => {
+        state = upgrade.stateUpdater(state);
+        state.boards[0].gold -= upgrade.cost;
+      }),
+
+    openShopping: () =>
+      set((state) => {
+        state.shopping = true;
+      }),
+
+    closeShopping: () =>
+      set((state) => {
+        // const tileIndexToRemove = state.boards[0].tiles.findIndex(
+        //   (t) => t.id === state.boards[0].shopping?.tileId,
+        // );
+        // state.boards[0].tiles.splice(tileIndexToRemove, 1);
+        // state.boards[0].shopping = null;
+        state.shopping = false;
+      }),
 
     move: (direction: Direction, boardIndex = 0) =>
       set((state) => {
+        if (state.choosing) return;
         // build traversals
         const vector = directionMap[direction];
         const traversals = buildTraversals(
@@ -342,8 +347,8 @@ export const useGameStore = create<GameState & Actions>()(
       set((state) => {
         const newSpell = rollActiveSpellData();
         const myBoard = initBoard(
-          5,
-          5,
+          4,
+          4,
           newSpell.spell.spawns,
           newSpell.spell.spawns,
           newSpell,

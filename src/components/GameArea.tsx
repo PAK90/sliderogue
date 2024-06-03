@@ -4,6 +4,7 @@ import { useSwipeable } from "react-swipeable";
 // import ShopDialog from "./ShopDialog.tsx";
 import Board from "./Board.tsx";
 import GoalChooserDialog from "./GoalChooserDialog.tsx";
+import ShopDialog from "./ShopDialog.tsx";
 
 const GameArea = () => {
   const { move, resetGame, boards } = useGameStore();
@@ -62,6 +63,7 @@ const GameArea = () => {
       {/*  })}*/}
       {/*<ShopDialog />*/}
       <GoalChooserDialog />
+      <ShopDialog />
       <div className="flex">
         {/*<div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${gold}`}</div>*/}
         <button

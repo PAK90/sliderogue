@@ -23,7 +23,7 @@ const TileRender = ({ tile }: { tile: Tile }) => {
     E: "bg-green-300",
   };
 
-  const { boards, enspellTile } = useGameStore();
+  const { boards } = useGameStore();
   const { availableSpells } = boards[0];
 
   // hack considering there's only one active spell for now
@@ -41,15 +41,15 @@ const TileRender = ({ tile }: { tile: Tile }) => {
     },
   );
 
-  const handleTileClick = () => {
-    if (spellNeedsThisTile) {
-      enspellTile(tile);
-    }
-  };
+  // const handleTileClick = () => {
+  //   if (spellNeedsThisTile) {
+  //     enspellTile(tile);
+  //   }
+  // };
 
   return (
     <div
-      onClick={handleTileClick}
+      // onClick={handleTileClick}
       className={`
                   w-20 h-20 ${tileColourMap[tile.name as keyof typeof tileColourMap]} 
                   rounded flex items-center justify-center

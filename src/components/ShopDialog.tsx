@@ -3,10 +3,12 @@ import { Upgrade, upgrades } from "../data/upgrades.ts";
 
 function ShopDialog() {
   const { shopping, closeShopping, boards, applyUpgrade } = useGameStore();
-  const gold = boards.reduce((_, b) => b.gold, 0);
+  if (!boards.length) return;
+  const { gold, usedUpgrades } = boards[0];
 
   const upgradeDisplay = (upgrade: Upgrade) => {
     const disabled = (upgrade?.cost || 0) > gold;
+    const timesUsed = usedUpgrades.filter((uu) => uu === upgrade.name).length;
     return (
       <div className={"m-1 p-1 bg-indigo-300 rounded-lg"}>
         <div className={"font-bold"}>{upgrade.name}</div>
@@ -17,7 +19,7 @@ function ShopDialog() {
           className={
             "text-amber-400 bg-indigo-500 cursor-pointer rounded-lg p-1"
           }
-        >{`${upgrade.cost} gold`}</button>
+        >{`${upgrade.cost * upgrade.costMultiplier ** timesUsed} gold`}</button>
       </div>
     );
   };

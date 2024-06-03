@@ -42,6 +42,7 @@ export type BoardState = {
   mana: number;
   gold: number;
   spellsCompleted: number;
+  usedUpgrades: string[];
   imminentAnnihilations: AnnihilationPair[];
 
   baseTilesToSpawn: Option[];
@@ -189,7 +190,13 @@ export const useGameStore = create<GameState & Actions>()(
     applyUpgrade: (upgrade: Upgrade) =>
       set((state) => {
         state = upgrade.stateUpdater(state);
-        state.boards[0].gold -= upgrade.cost;
+        const timesUsed = state.boards[0].usedUpgrades.filter(
+          (uu) => uu === upgrade.name,
+        ).length;
+        state.boards[0].gold -=
+          upgrade.cost * upgrade.costMultiplier ** timesUsed;
+        // take note of the upgrade used, so we can increase its cost later.
+        state.boards[0].usedUpgrades.push(upgrade.name);
       }),
 
     openShopping: () =>
@@ -334,6 +341,29 @@ export const useGameStore = create<GameState & Actions>()(
               ],
             ),
           );
+
+          // check which parts of the required spell are complete, and mark that in the spell
+          const activeSpell =
+            state.boards[boardIndex].availableSpells[
+              state.boards[boardIndex].activeSpell
+            ];
+          const newCompletedArray: boolean[] = Array.from(
+            {
+              length: activeSpell.complete.length,
+            },
+            () => false,
+          );
+          for (let i = 0; i < state.boards[boardIndex].tiles.length; i++) {
+            const tile = state.boards[boardIndex].tiles[i];
+            activeSpell.spell.requiredTiles.forEach((rt, rtIx) => {
+              if (!newCompletedArray[rtIx]) {
+                if (rt.tileValue === tile.value && rt.tileName === tile.name) {
+                  newCompletedArray[rtIx] = true;
+                }
+              }
+            });
+          }
+          activeSpell.complete = newCompletedArray;
         }
 
         // check for which tiles are in position to be elementally annihilated.
@@ -425,6 +455,7 @@ const initBoard = (
     availableSpells: [],
     activeSpell: 0,
     draggedCells: [],
+    usedUpgrades: [],
   };
   const tilesToAdd = newBoardState.baseTilesToSpawn.reduce((tta, option) => {
     tta.push(

@@ -29,17 +29,11 @@ const TileRender = ({ tile }: { tile: Tile }) => {
   // hack considering there's only one active spell for now
   // TODO: make this work for N active spells
   const activeSpell = availableSpells[0];
-  const spellNeedsThisTile = activeSpell.spell.requiredTiles.find(
-    (rt, rtIx) => {
-      if (
-        rt.tileValue === tile.value &&
-        rt.tileName === tile.name &&
-        !activeSpell.complete[rtIx]
-      ) {
-        return true;
-      }
-    },
-  );
+  const spellNeedsThisTile = activeSpell.spell.requiredTiles.find((rt) => {
+    if (rt.tileValue === tile.value && rt.tileName === tile.name) {
+      return true;
+    }
+  });
 
   // const handleTileClick = () => {
   //   if (spellNeedsThisTile) {

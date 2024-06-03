@@ -11,6 +11,7 @@ export type Upgrade = {
   cost: number;
   tier: number;
   weight: number;
+  costMultiplier: number;
 };
 
 const widthUpgrade: Upgrade = {
@@ -23,6 +24,7 @@ const widthUpgrade: Upgrade = {
   cost: 50,
   tier: 2,
   weight: 100,
+  costMultiplier: 10,
 };
 
 const heightUpgrade: Upgrade = {
@@ -35,6 +37,7 @@ const heightUpgrade: Upgrade = {
   cost: 50,
   tier: 2,
   weight: 100,
+  costMultiplier: 10,
 };
 
 const shuffle: Upgrade = {
@@ -69,6 +72,7 @@ const shuffle: Upgrade = {
   cost: 40,
   tier: 1,
   weight: 100,
+  costMultiplier: 2,
 };
 
 // const addEightTile: Upgrade = {

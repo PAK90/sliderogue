@@ -44,19 +44,19 @@ const heightUpgrade: Upgrade = {
   costMultiplier: 10,
 };
 
-const silverUpgrade: Upgrade = {
-  name: "Silver Engraving",
-  description: "Upgrades one tile to be Silver",
-  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
-    state.boards[0].boardHeight++;
-    return state;
-  },
-  type: "TILE",
-  cost: 20,
-  tier: 2,
-  weight: 100,
-  costMultiplier: 2,
-};
+// const silverUpgrade: Upgrade = {
+//   name: "Silver Engraving",
+//   description: "Upgrades one tile to be Silver",
+//   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+//     state.boards[0].boardHeight++;
+//     return state;
+//   },
+//   type: "TILE",
+//   cost: 20,
+//   tier: 2,
+//   weight: 100,
+//   costMultiplier: 2,
+// };
 
 const shuffle: Upgrade = {
   name: "Shuffle",

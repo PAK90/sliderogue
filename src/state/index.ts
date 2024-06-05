@@ -133,7 +133,7 @@ export const useGameStore = create<GameState & Actions>()(
         // NOT equal to dragged cells; there's a difference (that a relic will probably change).
         state.boards[boardIndex].score +=
           draggedTiles.reduce((total, t) => total + t.value, 0) *
-          (1 + (draggedTiles.length * percentPerTileLength) / 100) *
+          ((draggedTiles.length * percentPerTileLength) / 100) *
           (satisfiesActiveSpell ? 2 : 1);
 
         const targetIncrease = 1.5;

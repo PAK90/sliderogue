@@ -21,11 +21,15 @@ const Board = ({
     draggedCells,
     mana,
     gold,
+    score,
+    lines,
     spellsCompleted,
+    targetScore,
   } = board;
   const { setDraggedPath, useDraggedPath } = useGameStore();
 
   const [drawing, setDrawing] = useState(false);
+  const [scoreData, setScoreData] = useState({ tileScore: 0, length: 0 });
 
   const spellsCompletedRecord =
     localStorage.getItem("spellsCompletedRecord") || "0";
@@ -47,7 +51,6 @@ const Board = ({
     (cell: Coordinate) => {
       if (!drawing) return;
 
-      // setPath((prevPath) => {
       const existingIndex = draggedCells.findIndex(
         (c) => c.x === cell.x && c.y === cell.y,
       );
@@ -58,18 +61,37 @@ const Board = ({
       }
 
       setDraggedPath([...draggedCells, cell], boardIndex);
-      // });
     },
     [drawing, draggedCells, setDraggedPath, boardIndex],
   );
   const handleMouseUp = useCallback(() => {
     setDrawing(false);
-    if (draggedCells.length > 1 && mana >= draggedCells.length * 10) {
-      useDraggedPath(boardIndex);
-    } else {
+    if (draggedCells.length < 2) {
       setDraggedPath([], boardIndex);
     }
-  }, [boardIndex, draggedCells.length, mana, setDraggedPath, useDraggedPath]);
+  }, [boardIndex, draggedCells.length, setDraggedPath]);
+
+  useEffect(() => {
+    setScoreData(
+      draggedCells.reduce(
+        (scoreParts, cell) => {
+          const cellTile = tiles.find(
+            (t) => t.position.x === cell.x && t.position.y === cell.y,
+          );
+          if (cellTile) {
+            return {
+              tileScore: scoreParts.tileScore + cellTile.value,
+              length: scoreParts.length + 1,
+            };
+          }
+          return scoreParts;
+        },
+        { tileScore: 0, length: 0 },
+      ),
+    );
+  }, [draggedCells, tiles]);
+
+  const tileSize = 448 / 5;
 
   return (
     <div className="flex-col">
@@ -77,10 +99,19 @@ const Board = ({
         {`Patterns completed (/record): ${spellsCompleted}/${spellsCompletedRecord}`}
       </div>
       <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${gold}`}</div>
+      <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}/${targetScore}`}</div>
+      <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Lines left: ${lines}`}</div>
       <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Mana: ${mana}`}</div>
       <div
         className={`${draggedCells.length * 10 > mana ? "bg-red-200" : "bg-indigo-200"} w-fit m-1 p-0.5 rounded`}
       >{`Mana used: ${draggedCells.length * 10}`}</div>
+      <div>{`${scoreData.tileScore} x ${scoreData.length}`}</div>
+      <button
+        onClick={() => useDraggedPath(boardIndex)}
+        className="font-bold text-xl p-1 rounded border-gray-900 border-4"
+      >
+        Combine Tiles
+      </button>
       <div className="w-full bg-gray-400 p-1 relative">
         <div
           className={"absolute z-10 pointer-events-none"}
@@ -89,8 +120,11 @@ const Board = ({
           <svg
             xmlns="http://www.w3.org/2000/svg"
             // className="h-full w-max"
-            style={{ height: `${28}rem`, width: `${28}rem` }}
-            viewBox={`0 0 ${(boardWidth * 448) / boardWidth} ${(boardHeight * 448) / boardHeight}`}
+            style={{
+              height: `${(28 / 5) * boardHeight}rem`,
+              width: `${(28 / 5) * boardWidth}rem`,
+            }}
+            viewBox={`0 0 ${boardWidth * tileSize} ${boardHeight * tileSize}`}
           >
             <ConnectionRender connectionLine={draggedCells} />
             {imminentAnnihilations.map((imm, immIx) => (

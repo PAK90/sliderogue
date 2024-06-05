@@ -2,9 +2,11 @@ import { WritableDraft } from "immer";
 import { Actions, GameState, Tile } from "../state";
 // import { tile8 } from "./tiles.ts";
 
+export type UpgradeType = "BOARD" | "TILE";
 export type Upgrade = {
   name: string;
   description: string;
+  type: UpgradeType;
   stateUpdater: (
     state: WritableDraft<GameState & Actions>,
   ) => WritableDraft<GameState & Actions>;
@@ -21,6 +23,7 @@ const widthUpgrade: Upgrade = {
     state.boards[0].boardWidth++;
     return state;
   },
+  type: "BOARD",
   cost: 50,
   tier: 2,
   weight: 100,
@@ -34,10 +37,25 @@ const heightUpgrade: Upgrade = {
     state.boards[0].boardHeight++;
     return state;
   },
+  type: "BOARD",
   cost: 50,
   tier: 2,
   weight: 100,
   costMultiplier: 10,
+};
+
+const silverUpgrade: Upgrade = {
+  name: "Silver Engraving",
+  description: "Upgrades one tile to be Silver",
+  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+    state.boards[0].boardHeight++;
+    return state;
+  },
+  type: "TILE",
+  cost: 20,
+  tier: 2,
+  weight: 100,
+  costMultiplier: 2,
 };
 
 const shuffle: Upgrade = {
@@ -69,6 +87,7 @@ const shuffle: Upgrade = {
     state.boards[0].tiles = randomTiles;
     return state;
   },
+  type: "BOARD",
   cost: 40,
   tier: 1,
   weight: 100,

@@ -25,6 +25,7 @@ export type Coordinate = {
 };
 
 export type TileType = "WEAPON" | "ENEMY" | "NUMBER" | "ELEMENTAL";
+export type TileUpgrades = "GOLD" | "SILVER";
 
 export type Tile = {
   position: Coordinate;
@@ -32,6 +33,7 @@ export type Tile = {
   name: string;
   id: number;
   type: TileType;
+  upgrades: TileUpgrades[];
 };
 
 export type BoardState = {
@@ -41,7 +43,9 @@ export type BoardState = {
   score: number;
   mana: number;
   gold: number;
+  lines: number;
   spellsCompleted: number;
+  targetScore: number;
   usedUpgrades: string[];
   imminentAnnihilations: AnnihilationPair[];
 
@@ -56,6 +60,7 @@ export type GameState = {
   boards: BoardState[];
   choosing: boolean;
   shopping: boolean;
+  upgrading: boolean;
 };
 
 export type Actions = {
@@ -76,6 +81,7 @@ export const useGameStore = create<GameState & Actions>()(
   immer((set) => ({
     choosing: false,
     shopping: false,
+    upgrading: false,
     boards: [],
     imminentAnnihilations: [],
 
@@ -97,7 +103,6 @@ export const useGameStore = create<GameState & Actions>()(
           state.boards[boardIndex].availableSpells[
             state.boards[boardIndex].activeSpell
           ];
-        // TODO: make this only be satisfied if the start and end tiles are required.
         const satisfiesActiveSpell = activeSpell.spell.requiredTiles.every(
           (reqTile) =>
             draggedTiles.find(
@@ -105,22 +110,48 @@ export const useGameStore = create<GameState & Actions>()(
                 dt.name === reqTile.tileName && dt.value === reqTile.tileValue,
             ),
         );
-        if (satisfiesActiveSpell) {
-          // congrats, the pattern was completed!
-          state.choosing = true;
-          state.boards[boardIndex].tiles = draggedTiles.reduce(
-            (tileState, draggedTile) => {
-              const dtIx = tileState.findIndex((t) => t.id === draggedTile.id);
-              tileState.splice(dtIx, 1);
-              return tileState;
-            },
-            state.boards[boardIndex].tiles,
-          );
-          state.boards[boardIndex].mana -= draggedTiles.length * 10;
-          state.boards[boardIndex].spellsCompleted += 1;
+
+        const percentPerTileLength = 100;
+
+        // TODO: give points rewards for completing the active pattern.
+        // congrats, the pattern was completed!
+        // state.choosing = true;
+
+        // first, delete the dragged tiles from the board
+        state.boards[boardIndex].tiles = draggedTiles.reduce(
+          (tileState, draggedTile) => {
+            const dtIx = tileState.findIndex((t) => t.id === draggedTile.id);
+            tileState.splice(dtIx, 1);
+            return tileState;
+          },
+          state.boards[boardIndex].tiles,
+        );
+        // then reduce mana by the length of the dragged *cells*, not the tiles.
+        state.boards[boardIndex].mana -=
+          state.boards[boardIndex].draggedCells.length * 10;
+        // then make the score equal to the total of dragged tiles' value multiplied by x% per cell
+        // NOT equal to dragged cells; there's a difference (that a relic will probably change).
+        state.boards[boardIndex].score +=
+          draggedTiles.reduce((total, t) => total + t.value, 0) *
+          (1 + (draggedTiles.length * percentPerTileLength) / 100) *
+          (satisfiesActiveSpell ? 2 : 1);
+
+        const targetIncrease = 1.5;
+        // state.boards[boardIndex].spellsCompleted += 1;
+        // if we exceed the points total, give gold
+        // give 1 gold per remaining tile on the board; keep as a reducer for future upgrades.
+        if (
+          state.boards[boardIndex].score >= state.boards[boardIndex].targetScore
+        ) {
           state.boards[boardIndex].gold += state.boards[
             boardIndex
-          ].tiles.reduce((total, t) => total + t.value, 0);
+          ].tiles.reduce((total) => total + 1, 0);
+          state.boards[boardIndex].targetScore *= targetIncrease;
+          state.boards[boardIndex].lines = 3;
+          state.boards[boardIndex].score = 0;
+          state.choosing = true;
+        } else {
+          state.boards[boardIndex].lines--;
         }
         state.boards[boardIndex].draggedCells = [];
       }),
@@ -217,6 +248,12 @@ export const useGameStore = create<GameState & Actions>()(
     move: (direction: Direction, boardIndex = 0) =>
       set((state) => {
         if (state.choosing) return;
+
+        let moved = false;
+        if (state.boards[boardIndex].tiles.length === 0) {
+          // set moved to true to pretend we have tiles so it adds another one.
+          moved = true;
+        }
         // build traversals
         const vector = directionMap[direction];
         const traversals = buildTraversals(
@@ -224,7 +261,6 @@ export const useGameStore = create<GameState & Actions>()(
           state.boards[boardIndex].boardWidth,
           state.boards[boardIndex].boardHeight,
         );
-        let moved = false;
 
         traversals.x.forEach((xTrav) => {
           traversals.y.forEach((yTrav) => {
@@ -276,7 +312,7 @@ export const useGameStore = create<GameState & Actions>()(
                   tileHere.value *= 2;
 
                   // update the score... and mana.
-                  state.boards[boardIndex].score += tileHere.value;
+                  // state.boards[boardIndex].score += tileHere.value;
                   state.boards[boardIndex].mana += tileHere.value;
                 } else if (elementalCollisionResult) {
                   // move the tile that's about to be deleted so that it looks good
@@ -434,6 +470,8 @@ export const useGameStore = create<GameState & Actions>()(
 //   return annihilationPairs;
 // };
 
+const INITIAL_TARGET = 4000;
+
 const initBoard = (
   width: number,
   height: number,
@@ -445,6 +483,8 @@ const initBoard = (
     score: 0,
     mana: 0,
     gold: 0,
+    lines: 3,
+    targetScore: INITIAL_TARGET,
     spellsCompleted: 0,
     imminentAnnihilations: [],
     boardWidth: width,

@@ -23,6 +23,11 @@ const TileRender = ({ tile }: { tile: Tile }) => {
     E: "bg-green-300",
   };
 
+  const upgradeColourMap = {
+    GOLD: "#e3b006",
+    SILVER: "#e1e8f1",
+  };
+
   const { boards } = useGameStore();
   const { availableSpells } = boards[0];
 
@@ -40,6 +45,13 @@ const TileRender = ({ tile }: { tile: Tile }) => {
   //     enspellTile(tile);
   //   }
   // };
+
+  const shadowString = tile.upgrades
+    .map(
+      (upgrade, uIx) =>
+        `inset 0 0 0 ${(uIx + 1) * 5}px ${upgradeColourMap[upgrade]}`,
+    )
+    .join(", ");
 
   return (
     <div
@@ -59,6 +71,7 @@ const TileRender = ({ tile }: { tile: Tile }) => {
         left: tile.position.x * 80 + 8 + tile.position.x * 8,
         top: tile.position.y * 80 + 8 + tile.position.y * 8,
         transition: "top 100ms linear, left 100ms linear",
+        boxShadow: shadowString,
       }}
     >
       <span className="text-gray-600 font-bold text-3xl">{tile.value}</span>

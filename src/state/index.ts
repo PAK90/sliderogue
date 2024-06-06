@@ -128,7 +128,7 @@ export const useGameStore = create<GameState & Actions>()(
         );
         // then reduce mana by the length of the dragged *cells*, not the tiles.
         state.boards[boardIndex].mana -=
-          state.boards[boardIndex].draggedCells.length * 10;
+          state.boards[boardIndex].draggedCells.length * 20;
         // then make the score equal to the total of dragged tiles' value multiplied by x% per cell
         // NOT equal to dragged cells; there's a difference (that a relic will probably change).
         state.boards[boardIndex].score +=
@@ -470,7 +470,7 @@ export const useGameStore = create<GameState & Actions>()(
 //   return annihilationPairs;
 // };
 
-const INITIAL_TARGET = 4000;
+const INITIAL_TARGET = 2000;
 
 const initBoard = (
   width: number,

@@ -99,13 +99,13 @@ const Board = ({
       </div>
       <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${gold}`}</div>
       <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}/${targetScore}`}</div>
-      <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Lines left: ${lines}`}</div>
+      {/*<div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Lines left: ${lines}`}</div>*/}
       <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Tiles left: ${deck.length}`}</div>
       <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Mana: ${mana}`}</div>
       <div
         className={`${draggedCells.length * 10 > mana ? "bg-red-200" : "bg-indigo-200"} w-fit m-1 p-0.5 rounded`}
       >{`Mana used: ${draggedCells.length * 10}`}</div>
-      <div>{`${scoreData.tileScore} x ${scoreData.length}`}</div>
+      <div>{`${scoreData.tileScore} x ${scoreData.length} = ${scoreData.length * scoreData.tileScore}`}</div>
       <button
         onClick={() => useDraggedPath(boardIndex)}
         className="font-bold text-xl p-1 rounded border-gray-900 border-4"

@@ -150,11 +150,11 @@ export const useGameStore = create<GameState & Actions>()(
             boardIndex
           ].tiles.reduce((total) => total + 1, 0);
           state.boards[boardIndex].targetScore *= targetIncrease;
-          state.boards[boardIndex].lines = 3;
+          // state.boards[boardIndex].lines = 3;
           state.boards[boardIndex].score = 0;
           state.choosing = true;
         } else {
-          state.boards[boardIndex].lines--;
+          // state.boards[boardIndex].lines--;
         }
         state.boards[boardIndex].draggedCells = [];
       }),
@@ -480,7 +480,7 @@ export const useGameStore = create<GameState & Actions>()(
 //   return annihilationPairs;
 // };
 
-const INITIAL_TARGET = 200;
+const INITIAL_TARGET = 600;
 
 const initBoard = (
   width: number,

@@ -20,7 +20,6 @@ const Board = ({
     mana,
     gold,
     score,
-    lines,
     spellsCompleted,
     targetScore,
     deck,

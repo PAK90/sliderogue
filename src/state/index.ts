@@ -2,12 +2,14 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 // import chooseWeightedOption from "../helpers/chooseWeightedOption.ts";
 // import { Upgrade } from "../upgrades.ts";
-import { addRandomTile } from "../helpers/addRandomTile.ts";
 // import { defaultTiles } from "../tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
 // import { elemental4Tiles, elementalTiles } from "../data/tiles.ts";
 import { rollActiveSpellData, Spell } from "../data/spells.ts";
 import { Upgrade } from "../data/upgrades.ts";
+import { chooseEmptyTilePosition } from "../helpers/chooseEmptyTilePosition.ts";
+import { defaultDeck } from "../data/tiles.ts";
+import { uniqueId } from "../helpers/uniqueId.ts";
 // import range from "../helpers/range.ts";
 
 export type Direction = "up" | "down" | "left" | "right";
@@ -47,9 +49,10 @@ export type BoardState = {
   spellsCompleted: number;
   targetScore: number;
   usedUpgrades: string[];
-  imminentAnnihilations: AnnihilationPair[];
 
-  baseTilesToSpawn: Option[];
+  deck: Option[];
+
+  // baseTilesToSpawn: Option[];
   newTilesToSpawn: Option[];
   availableSpells: { spell: Spell; complete: boolean[] }[];
   activeSpell: number;
@@ -70,7 +73,7 @@ export type Actions = {
   openShopping: () => void;
   closeShopping: () => void;
   applyUpgrade: (u: Upgrade) => void;
-  setTilesToSpawn: (t: Option[]) => void;
+  // setTilesToSpawn: (t: Option[]) => void;
   enspellTile: (t: Tile) => void;
   setActiveSpell: (newSpell: Spell, boardIx: number) => void;
   setDraggedPath: (c: Coordinate[], boardIndex: number) => void;
@@ -128,7 +131,7 @@ export const useGameStore = create<GameState & Actions>()(
         );
         // then reduce mana by the length of the dragged *cells*, not the tiles.
         state.boards[boardIndex].mana -=
-          state.boards[boardIndex].draggedCells.length * 20;
+          state.boards[boardIndex].draggedCells.length * 10;
         // then make the score equal to the total of dragged tiles' value multiplied by x% per cell
         // NOT equal to dragged cells; there's a difference (that a relic will probably change).
         state.boards[boardIndex].score +=
@@ -172,9 +175,9 @@ export const useGameStore = create<GameState & Actions>()(
           spell: newSpell,
           complete: newSpell.requiredTiles.map(() => false),
         };
-        state.boards[boardIx].newTilesToSpawn = newSpell.spawns;
+        // state.boards[boardIx].newTilesToSpawn = newSpell.spawns;
         // FIXME; for now it's just me wanting each spell to have only their own colours come in.
-        state.boards[boardIx].baseTilesToSpawn = newSpell.spawns;
+        // state.boards[boardIx].baseTilesToSpawn = newSpell.spawns;
       }),
 
     enspellTile: (tile: Tile) =>
@@ -213,10 +216,10 @@ export const useGameStore = create<GameState & Actions>()(
         state.boards[0].tiles.splice(enspelledTile, 1);
       }),
 
-    setTilesToSpawn: (o: Option[]) =>
-      set((state) => {
-        state.boards[0].baseTilesToSpawn = o;
-      }),
+    // setTilesToSpawn: (o: Option[]) =>
+    //   set((state) => {
+    //     state.boards[0].baseTilesToSpawn = o;
+    //   }),
 
     applyUpgrade: (upgrade: Upgrade) =>
       set((state) => {
@@ -367,16 +370,30 @@ export const useGameStore = create<GameState & Actions>()(
         if (moved) {
           // add a random tile
           state.boards[boardIndex].tiles.push(
-            addRandomTile(
-              state.boards[boardIndex].tiles,
-              state.boards[boardIndex].boardWidth,
-              state.boards[boardIndex].boardHeight,
-              [
-                ...state.boards[boardIndex].baseTilesToSpawn,
-                ...state.boards[boardIndex].newTilesToSpawn,
-              ],
-            ),
+            // addRandomTile(
+            //   state.boards[boardIndex].tiles,
+            //   state.boards[boardIndex].boardWidth,
+            //   state.boards[boardIndex].boardHeight,
+            //   [
+            //     // ...state.boards[boardIndex].baseTilesToSpawn,
+            //     ...state.boards[boardIndex].newTilesToSpawn,
+            //   ],
+            // ),
+            {
+              id: uniqueId(),
+              name: state.boards[boardIndex].deck[0].id.toString(),
+              value: state.boards[boardIndex].deck[0].value || 2,
+              position: chooseEmptyTilePosition(
+                state.boards[boardIndex].boardWidth,
+                state.boards[boardIndex].boardHeight,
+                state.boards[boardIndex].tiles,
+              ).position,
+              type: state.boards[boardIndex].deck[0].type,
+              upgrades: [],
+            },
           );
+          // remove that tile from the deck
+          state.boards[boardIndex].deck.splice(0, 1);
 
           // check which parts of the required spell are complete, and mark that in the spell
           const activeSpell =
@@ -412,14 +429,7 @@ export const useGameStore = create<GameState & Actions>()(
     resetGame: () => {
       set((state) => {
         const newSpell = rollActiveSpellData();
-        const myBoard = initBoard(
-          4,
-          4,
-          newSpell.spell.spawns,
-          newSpell.spell.spawns,
-          newSpell,
-        );
-        // const enemyBoard = initBoard(5, 5, elementalTiles, elementalTiles);
+        const myBoard = initBoard(4, 4, newSpell, defaultDeck);
         state.boards = [myBoard];
         state.choosing = false;
       });
@@ -470,14 +480,15 @@ export const useGameStore = create<GameState & Actions>()(
 //   return annihilationPairs;
 // };
 
-const INITIAL_TARGET = 2000;
+const INITIAL_TARGET = 200;
 
 const initBoard = (
   width: number,
   height: number,
-  tilesToStart: Option[],
-  baseTilesToSpawn: Option[],
+  // tilesToStart: Option[],
+  // baseTilesToSpawn: Option[],
   newSpell: { spell: Spell; complete: boolean[] },
+  deckOfTiles: Option[],
 ) => {
   const newBoardState: BoardState = {
     score: 0,
@@ -486,30 +497,64 @@ const initBoard = (
     lines: 3,
     targetScore: INITIAL_TARGET,
     spellsCompleted: 0,
-    imminentAnnihilations: [],
     boardWidth: width,
     boardHeight: height,
     tiles: [],
-    baseTilesToSpawn: tilesToStart,
-    newTilesToSpawn: newSpell.spell.spawns,
+    newTilesToSpawn: [],
     availableSpells: [],
     activeSpell: 0,
     draggedCells: [],
     usedUpgrades: [],
+    deck: deckOfTiles,
   };
-  const tilesToAdd = newBoardState.baseTilesToSpawn.reduce((tta, option) => {
-    tta.push(
-      // @ts-expect-error stupid never
-      addRandomTile(tta, newBoardState.boardWidth, newBoardState.boardHeight, [
-        option,
-      ]),
-    );
-    return tta;
-  }, []);
-  newBoardState.tiles = newBoardState.tiles.concat(tilesToAdd);
+  // const tilesToAdd = newBoardState.baseTilesToSpawn.reduce((tta, option) => {
+  //   tta.push(
+  //     // @ts-expect-error stupid never
+  //     addRandomTile(tta, newBoardState.boardWidth, newBoardState.boardHeight, [
+  //       option,
+  //     ]),
+  //   );
+  //   return tta;
+  // }, []);
+  // newBoardState.tiles = newBoardState.tiles.concat(tilesToAdd);
+  //
+  // // but after this, we want the spawn pool to be different... includes wildcards and 4-tiles.
+  // newBoardState.baseTilesToSpawn = baseTilesToSpawn;
 
-  // but after this, we want the spawn pool to be different... includes wildcards and 4-tiles.
-  newBoardState.baseTilesToSpawn = baseTilesToSpawn;
+  const startingSpots = [0, 1].reduce(
+    (chosenCells) => {
+      return [
+        ...chosenCells,
+        chooseEmptyTilePosition(width, height, chosenCells),
+      ];
+    },
+    [] as { position: Coordinate }[],
+  );
+
+  function shuffleArray<T>(array: T[]): T[] {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  }
+  const shuffledDeck = shuffleArray(deckOfTiles);
+
+  // const { deck, chosenTiles } = chooseTilesFromBag(deckOfTiles, 2);
+  // take the given deck, shuffle it, and draw from that without ever reshuffling.
+
+  newBoardState.tiles = startingSpots.map((ss, ssIx) => ({
+    id: uniqueId(),
+    name: shuffledDeck[ssIx].id.toString(),
+    value: shuffledDeck[ssIx].value || 2,
+    position: ss.position,
+    type: shuffledDeck[ssIx].type,
+    upgrades: [],
+  }));
+
+  shuffledDeck.splice(0, 2);
+  newBoardState.deck = shuffledDeck;
 
   newBoardState.availableSpells.push(newSpell);
   return newBoardState;

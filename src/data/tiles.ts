@@ -35,3 +35,7 @@ export const elemental4Tiles = [
   airTile,
   { ...airTile, value: 4, weight: 10 },
 ];
+
+const allTheFires = Array.from({ length: 20 }, () => ({ ...fireTile }));
+const allTheWaters = Array.from({ length: 20 }, () => ({ ...waterTile }));
+export const defaultDeck = [...allTheFires, ...allTheWaters];

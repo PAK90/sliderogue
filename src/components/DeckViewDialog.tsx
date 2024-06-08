@@ -5,6 +5,7 @@ const GoalChooserDialog = () => {
   const { deckLooking, toggleDeckView, boards } = useGameStore();
   // TODO: make this not fixed to 0.
   const deck = boards[0]?.deck;
+  if (!deck) return;
 
   const colourMap = {
     W: "bg-blue-300",

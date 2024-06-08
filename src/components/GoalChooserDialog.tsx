@@ -23,8 +23,8 @@ const GoalChooserDialog = () => {
     while (choices.length < Math.min(3, spells.length)) {
       const potentialNewSpell = rollRandomSpell();
       if (
-        !choices.find((s) => s.name === potentialNewSpell.name) &&
-        potentialNewSpell.name !== activeSpell?.spell.name
+        !choices.find((s) => s.name === potentialNewSpell.name)
+        //     potentialNewSpell.name !== activeSpell?.spell.name
       ) {
         choices.push(potentialNewSpell);
       }

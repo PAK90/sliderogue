@@ -64,12 +64,14 @@ export type GameState = {
   choosing: boolean;
   shopping: boolean;
   upgrading: boolean;
+  deckLooking: boolean;
 };
 
 export type Actions = {
   move: (direction: Direction, boardIndex?: number) => void;
   resetGame: () => void;
   setChoosing: () => void;
+  toggleDeckView: () => void;
   openShopping: () => void;
   closeShopping: () => void;
   applyUpgrade: (u: Upgrade) => void;
@@ -85,8 +87,14 @@ export const useGameStore = create<GameState & Actions>()(
     choosing: false,
     shopping: false,
     upgrading: false,
+    deckLooking: false,
     boards: [],
     imminentAnnihilations: [],
+
+    toggleDeckView: () =>
+      set((state) => {
+        state.deckLooking = !state.deckLooking;
+      }),
 
     useDraggedPath: (boardIndex: number) =>
       set((state) => {
@@ -368,33 +376,34 @@ export const useGameStore = create<GameState & Actions>()(
         });
 
         if (moved) {
-          // add a random tile
-          state.boards[boardIndex].tiles.push(
-            // addRandomTile(
-            //   state.boards[boardIndex].tiles,
-            //   state.boards[boardIndex].boardWidth,
-            //   state.boards[boardIndex].boardHeight,
-            //   [
-            //     // ...state.boards[boardIndex].baseTilesToSpawn,
-            //     ...state.boards[boardIndex].newTilesToSpawn,
-            //   ],
-            // ),
-            {
-              id: uniqueId(),
-              name: state.boards[boardIndex].deck[0].id.toString(),
-              value: state.boards[boardIndex].deck[0].value || 2,
-              position: chooseEmptyTilePosition(
-                state.boards[boardIndex].boardWidth,
-                state.boards[boardIndex].boardHeight,
-                state.boards[boardIndex].tiles,
-              ).position,
-              type: state.boards[boardIndex].deck[0].type,
-              upgrades: [],
-            },
-          );
-          // remove that tile from the deck
-          state.boards[boardIndex].deck.splice(0, 1);
-
+          // add a random tile if any are left.
+          if (state.boards[boardIndex].deck.length > 0) {
+            state.boards[boardIndex].tiles.push(
+              // addRandomTile(
+              //   state.boards[boardIndex].tiles,
+              //   state.boards[boardIndex].boardWidth,
+              //   state.boards[boardIndex].boardHeight,
+              //   [
+              //     // ...state.boards[boardIndex].baseTilesToSpawn,
+              //     ...state.boards[boardIndex].newTilesToSpawn,
+              //   ],
+              // ),
+              {
+                id: uniqueId(),
+                name: state.boards[boardIndex].deck[0].id.toString(),
+                value: state.boards[boardIndex].deck[0].value || 2,
+                position: chooseEmptyTilePosition(
+                  state.boards[boardIndex].boardWidth,
+                  state.boards[boardIndex].boardHeight,
+                  state.boards[boardIndex].tiles,
+                ).position,
+                type: state.boards[boardIndex].deck[0].type,
+                upgrades: [],
+              },
+            );
+            // remove that tile from the deck
+            state.boards[boardIndex].deck.splice(0, 1);
+          }
           // check which parts of the required spell are complete, and mark that in the spell
           const activeSpell =
             state.boards[boardIndex].availableSpells[

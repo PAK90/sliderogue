@@ -1,4 +1,4 @@
-import { fireTile, waterTile } from "./tiles.ts";
+import { airTile, earthTile, fireTile, waterTile } from "./tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
 
 export const rollActiveSpellData = () => {
@@ -34,60 +34,60 @@ const steamSpell: Spell = {
   spawns: [fireTile, waterTile],
 };
 
-// const lavaSpell: Spell = {
-//   name: "Lava Flow",
-//   requiredTiles: [
-//     { tileName: fireTile.id, tileValue: 4 },
-//     { tileName: fireTile.id, tileValue: 8 },
-//     { tileName: earthTile.id, tileValue: 4 },
-//     { tileName: earthTile.id, tileValue: 8 },
-//   ],
-//   spawns: [fireTile, earthTile],
-// };
-//
-// const sandstormSpell: Spell = {
-//   name: "Sand Storm",
-//   requiredTiles: [
-//     { tileName: airTile.id, tileValue: 4 },
-//     { tileName: airTile.id, tileValue: 8 },
-//     { tileName: earthTile.id, tileValue: 4 },
-//     { tileName: earthTile.id, tileValue: 8 },
-//   ],
-//   spawns: [airTile, earthTile],
-// };
-//
-// const mistySpell: Spell = {
-//   name: "Morning Mist",
-//   requiredTiles: [
-//     { tileName: waterTile.id, tileValue: 4 },
-//     { tileName: waterTile.id, tileValue: 8 },
-//     { tileName: airTile.id, tileValue: 4 },
-//     { tileName: airTile.id, tileValue: 8 },
-//   ],
-//   spawns: [waterTile, airTile],
-// };
-//
-// const mudflowSpell: Spell = {
-//   name: "Mud Flow",
-//   requiredTiles: [
-//     { tileName: waterTile.id, tileValue: 4 },
-//     { tileName: waterTile.id, tileValue: 8 },
-//     { tileName: earthTile.id, tileValue: 4 },
-//     { tileName: earthTile.id, tileValue: 8 },
-//   ],
-//   spawns: [waterTile, earthTile],
-// };
-//
-// const staticsparkSpell: Spell = {
-//   name: "Static Sparks",
-//   requiredTiles: [
-//     { tileName: fireTile.id, tileValue: 4 },
-//     { tileName: fireTile.id, tileValue: 8 },
-//     { tileName: airTile.id, tileValue: 4 },
-//     { tileName: airTile.id, tileValue: 8 },
-//   ],
-//   spawns: [fireTile, airTile],
-// };
+const lavaSpell: Spell = {
+  name: "Lava Flow",
+  requiredTiles: [
+    { tileName: fireTile.id, tileValue: 4 },
+    { tileName: fireTile.id, tileValue: 8 },
+    { tileName: earthTile.id, tileValue: 4 },
+    { tileName: earthTile.id, tileValue: 8 },
+  ],
+  spawns: [fireTile, earthTile],
+};
+
+const sandstormSpell: Spell = {
+  name: "Sand Storm",
+  requiredTiles: [
+    { tileName: airTile.id, tileValue: 4 },
+    { tileName: airTile.id, tileValue: 8 },
+    { tileName: earthTile.id, tileValue: 4 },
+    { tileName: earthTile.id, tileValue: 8 },
+  ],
+  spawns: [airTile, earthTile],
+};
+
+const mistySpell: Spell = {
+  name: "Morning Mist",
+  requiredTiles: [
+    { tileName: waterTile.id, tileValue: 4 },
+    { tileName: waterTile.id, tileValue: 8 },
+    { tileName: airTile.id, tileValue: 4 },
+    { tileName: airTile.id, tileValue: 8 },
+  ],
+  spawns: [waterTile, airTile],
+};
+
+const mudflowSpell: Spell = {
+  name: "Mud Flow",
+  requiredTiles: [
+    { tileName: waterTile.id, tileValue: 4 },
+    { tileName: waterTile.id, tileValue: 8 },
+    { tileName: earthTile.id, tileValue: 4 },
+    { tileName: earthTile.id, tileValue: 8 },
+  ],
+  spawns: [waterTile, earthTile],
+};
+
+const staticsparkSpell: Spell = {
+  name: "Static Sparks",
+  requiredTiles: [
+    { tileName: fireTile.id, tileValue: 4 },
+    { tileName: fireTile.id, tileValue: 8 },
+    { tileName: airTile.id, tileValue: 4 },
+    { tileName: airTile.id, tileValue: 8 },
+  ],
+  spawns: [fireTile, airTile],
+};
 
 // const waterHoseSpell: Spell = {
 //   name: "Water Hose",
@@ -121,9 +121,9 @@ const steamSpell: Spell = {
 export const spells = [
   steamSpell,
   // rainbowSpell,
-  // lavaSpell,
-  // staticsparkSpell,
-  // mistySpell,
-  // mudflowSpell,
-  // sandstormSpell,
+  lavaSpell,
+  staticsparkSpell,
+  mistySpell,
+  mudflowSpell,
+  sandstormSpell,
 ];

@@ -28,8 +28,8 @@ const TileRender = ({ tile }: { tile: Tile }) => {
     SILVER: "#e1e8f1",
   };
 
-  const { boards } = useGameStore();
-  const { availableSpells } = boards[0];
+  const { boards, upgrading, setSelectedTiles } = useGameStore();
+  const { availableSpells, selectedTiles } = boards[0];
 
   // hack considering there's only one active spell for now
   // TODO: make this work for N active spells
@@ -40,11 +40,7 @@ const TileRender = ({ tile }: { tile: Tile }) => {
     }
   });
 
-  // const handleTileClick = () => {
-  //   if (spellNeedsThisTile) {
-  //     enspellTile(tile);
-  //   }
-  // };
+  const selected = selectedTiles.find((st) => st.id === tile.id);
 
   const shadowString = tile.upgrades
     .map(
@@ -55,15 +51,18 @@ const TileRender = ({ tile }: { tile: Tile }) => {
 
   return (
     <div
-      // onClick={handleTileClick}
+      onClick={() => {
+        setSelectedTiles(tile, 0);
+      }}
       className={`
                   w-20 h-20 ${tileColourMap[tile.name as keyof typeof tileColourMap]} 
                   rounded flex items-center justify-center
                   animate-growIn
                   absolute
-                  pointer-events-none
+                  ${!upgrading && "pointer-events-none"}
+                  ${upgrading && "cursor-pointer"}
+                  ${selected && "outline outline-gray-100 outline-4"}
                   ${spellNeedsThisTile && "border-4 border-gray-900"}
-                  ${spellNeedsThisTile && "cursor-pointer"}
                 `}
       style={{
         transformStyle: "preserve-3d",

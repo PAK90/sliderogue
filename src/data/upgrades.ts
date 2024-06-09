@@ -14,6 +14,8 @@ export type Upgrade = {
   tier: number;
   weight: number;
   costMultiplier: number;
+  minTiles: number;
+  maxTiles: number;
 };
 
 const widthUpgrade: Upgrade = {
@@ -24,10 +26,12 @@ const widthUpgrade: Upgrade = {
     return state;
   },
   type: "BOARD",
-  cost: 50,
+  cost: 15,
   tier: 2,
   weight: 100,
   costMultiplier: 10,
+  minTiles: 0,
+  maxTiles: 0,
 };
 
 const heightUpgrade: Upgrade = {
@@ -38,25 +42,71 @@ const heightUpgrade: Upgrade = {
     return state;
   },
   type: "BOARD",
-  cost: 50,
+  cost: 15,
   tier: 2,
   weight: 100,
   costMultiplier: 10,
+  minTiles: 0,
+  maxTiles: 0,
 };
 
-// const silverUpgrade: Upgrade = {
-//   name: "Silver Engraving",
-//   description: "Upgrades one tile to be Silver",
-//   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
-//     state.boards[0].boardHeight++;
-//     return state;
-//   },
-//   type: "TILE",
-//   cost: 20,
-//   tier: 2,
-//   weight: 100,
-//   costMultiplier: 2,
-// };
+const silverUpgrade: Upgrade = {
+  name: "Silver Engraving",
+  description:
+    "Upgrades up to two tiles to be Silver." +
+    "\nSilver tiles cost 50% less mana to combine",
+  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+    const board = state.boards[0];
+    const selectedTiles = board.selectedTiles;
+    selectedTiles.forEach((selTile) => {
+      const tile = board.tiles.find((tile) => tile.id === selTile.id);
+      if (tile) {
+        tile.upgrades.push("SILVER");
+      } else {
+        throw Error(
+          "Somehow have a selected tile that has no equivalent real tile.",
+        );
+      }
+    });
+    return state;
+  },
+  type: "TILE",
+  cost: 2,
+  tier: 2,
+  weight: 100,
+  costMultiplier: 2,
+  minTiles: 1,
+  maxTiles: 2,
+};
+
+const goldUpgrade: Upgrade = {
+  name: "Gold Plating",
+  description:
+    "Upgrades up to two tiles to be Gold." +
+    "\nGold tiles are worth 3 gold at the end of a round (instead of 1)",
+  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+    const board = state.boards[0];
+    const selectedTiles = board.selectedTiles;
+    selectedTiles.forEach((selTile) => {
+      const tile = board.tiles.find((tile) => tile.id === selTile.id);
+      if (tile) {
+        tile.upgrades.push("GOLD");
+      } else {
+        throw Error(
+          "Somehow have a selected tile that has no equivalent real tile.",
+        );
+      }
+    });
+    return state;
+  },
+  type: "TILE",
+  cost: 4,
+  tier: 2,
+  weight: 100,
+  costMultiplier: 2,
+  minTiles: 1,
+  maxTiles: 2,
+};
 
 const shuffle: Upgrade = {
   name: "Shuffle",
@@ -88,10 +138,12 @@ const shuffle: Upgrade = {
     return state;
   },
   type: "BOARD",
-  cost: 40,
+  cost: 3,
   tier: 1,
   weight: 100,
   costMultiplier: 2,
+  minTiles: 0,
+  maxTiles: 0,
 };
 
 // const addEightTile: Upgrade = {
@@ -150,4 +202,6 @@ export const upgrades = [
   heightUpgrade,
   // upgradeShopTile,
   shuffle,
+  silverUpgrade,
+  goldUpgrade,
 ];

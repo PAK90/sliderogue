@@ -20,14 +20,26 @@ const Board = ({
     mana,
     gold,
     score,
+    lines,
     spellsCompleted,
     targetScore,
-    deck,
+    selectedTiles,
+    basePoints,
+    multiplier,
+    ownedItems,
   } = board;
-  const { setDraggedPath, useDraggedPath, toggleDeckView } = useGameStore();
+  const {
+    setDraggedPath,
+    useDraggedPath,
+    upgrading,
+    applyUpgrade,
+    openShopping,
+    endUpgrading,
+  } = useGameStore();
 
   const [drawing, setDrawing] = useState(false);
-  const [scoreData, setScoreData] = useState({ tileScore: 0, length: 0 });
+  // const [scoreData, setScoreData] = useState({ tileScore: 0, length: 0 });
+  const [manaUsed, setManaUsed] = useState(0);
 
   const spellsCompletedRecord =
     localStorage.getItem("spellsCompletedRecord") || "0";
@@ -70,22 +82,37 @@ const Board = ({
   }, [boardIndex, draggedCells.length, setDraggedPath]);
 
   useEffect(() => {
-    setScoreData(
-      draggedCells.reduce(
-        (scoreParts, cell) => {
-          const cellTile = tiles.find(
-            (t) => t.position.x === cell.x && t.position.y === cell.y,
-          );
-          if (cellTile) {
-            return {
-              tileScore: scoreParts.tileScore + cellTile.value,
-              length: scoreParts.length + 1,
-            };
-          }
-          return scoreParts;
-        },
-        { tileScore: 0, length: 0 },
-      ),
+    // setScoreData(
+    //   draggedCells.reduce(
+    //     (scoreParts, cell) => {
+    //       const cellTile = tiles.find(
+    //         (t) => t.position.x === cell.x && t.position.y === cell.y,
+    //       );
+    //       if (cellTile) {
+    //         return {
+    //           tileScore: scoreParts.tileScore + cellTile.value,
+    //           length: scoreParts.length + 1,
+    //         };
+    //       }
+    //       return scoreParts;
+    //     },
+    //     { tileScore: 0, length: 0 },
+    //   ),
+    // );
+    const baseManaCostPerTile = 10;
+    const manaIncreasePerTile = 1.3;
+    setManaUsed(
+      draggedCells.reduce((manaTotal, dTile, dTileIx) => {
+        const draggedTile = tiles.find(
+          (t) => t.position.x === dTile.x && t.position.y === dTile.y,
+        );
+        return Math.floor(
+          manaTotal +
+            baseManaCostPerTile *
+              manaIncreasePerTile ** dTileIx *
+              (draggedTile?.upgrades.includes("SILVER") ? 0.5 : 1),
+        );
+      }, 0),
     );
   }, [draggedCells, tiles]);
 
@@ -98,22 +125,41 @@ const Board = ({
       </div>
       <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${gold}`}</div>
       <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}/${targetScore}`}</div>
-      {/*<div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Lines left: ${lines}`}</div>*/}
-      <div
-        onClick={toggleDeckView}
-        className="bg-indigo-200 w-fit m-1 p-0.5 rounded cursor-pointer"
-      >{`Tiles left: ${deck.length}`}</div>
+      <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Lines left: ${lines}`}</div>
+      {/*<div*/}
+      {/*  onClick={toggleDeckView}*/}
+      {/*  className="bg-indigo-200 w-fit m-1 p-0.5 rounded cursor-pointer"*/}
+      {/*>{`Tiles left: ${deck.length}`}</div>*/}
       <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Mana: ${mana}`}</div>
       <div
-        className={`${draggedCells.length * 10 > mana ? "bg-red-200" : "bg-indigo-200"} w-fit m-1 p-0.5 rounded`}
-      >{`Mana used: ${draggedCells.length * 10}`}</div>
-      <div>{`${scoreData.tileScore} x ${scoreData.length} = ${scoreData.length * scoreData.tileScore}`}</div>
-      <button
-        onClick={() => useDraggedPath(boardIndex)}
-        className="font-bold text-xl p-1 rounded border-gray-900 border-4"
-      >
-        Combine Tiles
-      </button>
+        className={`${manaUsed > mana ? "bg-red-200" : "bg-indigo-200"} w-fit m-1 p-0.5 rounded`}
+      >{`Mana used: ${manaUsed}`}</div>
+      <div className="bg-gray-700 w-fit m-1 p-0.5 rounded text-gray-200">{`Items: ${ownedItems.join(", ")}`}</div>
+      <div>{`${basePoints} x ${multiplier} = ${basePoints * multiplier}`}</div>
+      {!upgrading && (
+        <button
+          onClick={() => useDraggedPath(boardIndex)}
+          className="font-bold text-xl p-1 rounded border-gray-900 border-4"
+        >
+          Combine Tiles
+        </button>
+      )}
+      {upgrading && (
+        <button
+          disabled={
+            upgrading.minTiles > selectedTiles.length ||
+            selectedTiles.length > upgrading.maxTiles
+          }
+          onClick={() => {
+            applyUpgrade(upgrading);
+            openShopping();
+            endUpgrading();
+          }}
+          className="font-bold text-xl p-1 rounded border-gray-900 border-4"
+        >
+          Upgrade Tiles
+        </button>
+      )}
       <div className="w-full bg-gray-400 p-1 relative">
         <div
           className={"absolute z-10 pointer-events-none"}
@@ -141,12 +187,16 @@ const Board = ({
               {range(boardWidth).map((_, cIx) => {
                 return (
                   <div
-                    onMouseDown={() => handleMouseDown({ x: cIx, y: rIx })}
-                    onMouseEnter={() => handleMouseEnter({ x: cIx, y: rIx })}
-                    onMouseUp={handleMouseUp}
                     key={`${rIx}${cIx}`}
-                    className="w-20 h-20 rounded bg-gray-200 m-1"
-                  />
+                    className="flex w-20 h-20 rounded bg-gray-200 m-1 justify-center items-center"
+                  >
+                    <div
+                      onMouseDown={() => handleMouseDown({ x: cIx, y: rIx })}
+                      onMouseEnter={() => handleMouseEnter({ x: cIx, y: rIx })}
+                      onMouseUp={handleMouseUp}
+                      className="w-16 h-16"
+                    />
+                  </div>
                 );
               })}
             </div>

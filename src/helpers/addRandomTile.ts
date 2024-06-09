@@ -35,6 +35,6 @@ export const addRandomTile = (
     value: chosenTile.value || 2,
     position: potentialNewCellPos,
     type: chosenTile.type,
-    upgrades: ["SILVER"],
+    upgrades: [],
   };
 };

@@ -1,5 +1,6 @@
 import { WritableDraft } from "immer";
 import { Actions, GameState, Tile } from "../state";
+import shuffleArray from "../helpers/shuffleArray.ts";
 // import { tile8 } from "./tiles.ts";
 
 export type UpgradeType = "BOARD" | "TILE";
@@ -57,17 +58,30 @@ const silverUpgrade: Upgrade = {
     "\nSilver tiles cost 50% less mana to combine",
   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
     const board = state.boards[0];
-    const selectedTiles = board.selectedTiles;
-    selectedTiles.forEach((selTile) => {
-      const tile = board.tiles.find((tile) => tile.id === selTile.id);
-      if (tile) {
-        tile.upgrades.push("SILVER");
+    // const selectedTiles = board.selectedTiles;
+    // selectedTiles.forEach((selTile) => {
+    //   const tile = board.tiles.find((tile) => tile.id === selTile.id);
+    //   if (tile) {
+    //     tile.upgrades.push("SILVER");
+    //   } else {
+    //     throw Error(
+    //       "Somehow have a selected tile that has no equivalent real tile.",
+    //     );
+    //   }
+    // });
+    const { selectedDeckTiles } = board;
+    selectedDeckTiles.forEach((tileIx) => {
+      const potentialUpgrades = board.upgradedDeck[tileIx].upgrades;
+      if (potentialUpgrades) {
+        potentialUpgrades.push("SILVER");
       } else {
-        throw Error(
-          "Somehow have a selected tile that has no equivalent real tile.",
-        );
+        board.upgradedDeck[tileIx].upgrades = ["SILVER"];
       }
     });
+    const deckFromSpawns = board.availableSpells[0].spell.spawns
+      .map((st) => Array.from({ length: 20 }, () => ({ ...st })))
+      .flat();
+    board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));
     return state;
   },
   type: "TILE",
@@ -86,17 +100,30 @@ const goldUpgrade: Upgrade = {
     "\nGold tiles are worth 3 gold at the end of a round (instead of 1)",
   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
     const board = state.boards[0];
-    const selectedTiles = board.selectedTiles;
-    selectedTiles.forEach((selTile) => {
-      const tile = board.tiles.find((tile) => tile.id === selTile.id);
-      if (tile) {
-        tile.upgrades.push("GOLD");
+    // const selectedTiles = board.selectedTiles;
+    // selectedTiles.forEach((selTile) => {
+    //   const tile = board.tiles.find((tile) => tile.id === selTile.id);
+    //   if (tile) {
+    //     tile.upgrades.push("GOLD");
+    //   } else {
+    //     throw Error(
+    //       "Somehow have a selected tile that has no equivalent real tile.",
+    //     );
+    //   }
+    // });
+    const { selectedDeckTiles } = board;
+    selectedDeckTiles.forEach((tileIx) => {
+      const potentialUpgrades = board.upgradedDeck[tileIx].upgrades;
+      if (potentialUpgrades) {
+        potentialUpgrades.push("GOLD");
       } else {
-        throw Error(
-          "Somehow have a selected tile that has no equivalent real tile.",
-        );
+        board.upgradedDeck[tileIx].upgrades = ["GOLD"];
       }
     });
+    const deckFromSpawns = board.availableSpells[0].spell.spawns
+      .map((st) => Array.from({ length: 20 }, () => ({ ...st })))
+      .flat();
+    board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));
     return state;
   },
   type: "TILE",

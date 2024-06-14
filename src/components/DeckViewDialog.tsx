@@ -2,9 +2,19 @@ import { useGameStore } from "../state";
 import { Option } from "../helpers/chooseWeightedOption.ts";
 
 const GoalChooserDialog = () => {
-  const { deckLooking, toggleDeckView, boards } = useGameStore();
+  const {
+    deckLooking,
+    toggleDeckView,
+    boards,
+    upgrading,
+    applyUpgrade,
+    endUpgrading,
+    setSelectedDeckTiles,
+  } = useGameStore();
   // TODO: make this not fixed to 0.
   const deck = boards[0]?.usableDeck;
+  const selectedDeckTiles = boards[0]?.selectedDeckTiles;
+  const upgradedDeck = boards[0]?.upgradedDeck;
   if (!deck) return;
 
   const colourMap = {
@@ -27,13 +37,20 @@ const GoalChooserDialog = () => {
       ) || []
     ).join(", ");
 
+    const selected = selectedDeckTiles.includes(ix);
+
     return (
       <div
+        onClick={() => {
+          setSelectedDeckTiles(ix, 0);
+        }}
         key={ix}
         className={`
                   w-10 h-10 ${colourMap[t.id as keyof typeof colourMap]}
                   rounded flex items-center justify-center
                   animate-growIn
+                  ${upgrading && "cursor-pointer"}
+                  ${selected && "outline outline-gray-100 outline-4"}
                   ${value.toString().indexOf("$") > -1 && "cursor-pointer"}
                 `}
         style={{
@@ -52,6 +69,8 @@ const GoalChooserDialog = () => {
     );
   };
 
+  const deckToUse = upgrading ? upgradedDeck : deck;
+
   return (
     <>
       <div
@@ -60,8 +79,26 @@ const GoalChooserDialog = () => {
           bg-gray-200 shadow-2xl absolute top-1/4 left-1/4 w-1/2 h-fit z-20
         `}
       >
+        {upgrading && (
+          <>
+            <button
+              disabled={
+                upgrading.minTiles > selectedDeckTiles.length ||
+                selectedDeckTiles.length > upgrading.maxTiles
+              }
+              onClick={() => {
+                applyUpgrade(upgrading);
+                endUpgrading();
+              }}
+              className="font-bold text-xl p-1 rounded border-gray-900 border-4"
+            >
+              Upgrade Tiles
+            </button>
+            <div>{`Select ${upgrading.minTiles} to ${upgrading.maxTiles} tiles, then click Upgrade Tiles`}</div>
+          </>
+        )}
         <div className="flex flex-wrap">
-          {deck.map((rt, rtIx) => {
+          {deckToUse.map((rt, rtIx) => {
             return tileRender(rt, rtIx);
           })}
         </div>

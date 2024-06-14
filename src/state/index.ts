@@ -52,6 +52,7 @@ export type BoardState = {
   usedUpgrades: string[];
   ownedItems: string[];
   selectedTiles: Tile[];
+  selectedDeckTiles: number[];
 
   basePoints: number;
   multiplier: number;
@@ -91,6 +92,7 @@ export type Actions = {
   setDraggedPath: (c: Coordinate[], boardIndex: number) => void;
   useDraggedPath: (boardIndex: number) => void;
   setSelectedTiles: (t: Tile, bIx: number) => void;
+  setSelectedDeckTiles: (t: number, bIx: number) => void;
 };
 
 export const useGameStore = create<GameState & Actions>()(
@@ -116,16 +118,31 @@ export const useGameStore = create<GameState & Actions>()(
         }
       }),
 
+    setSelectedDeckTiles: (deckTileIndex: number, bIx: number) =>
+      set((state) => {
+        const board = state.boards[bIx];
+        const selectedAlreadyIx = board.selectedDeckTiles.findIndex(
+          (st) => st === deckTileIndex,
+        );
+        if (selectedAlreadyIx !== -1) {
+          board.selectedDeckTiles.splice(selectedAlreadyIx, 1);
+        } else {
+          board.selectedDeckTiles.push(deckTileIndex);
+        }
+      }),
+
     setUpgrading: (u: Upgrade) =>
       set((state) => {
         state.upgrading = u;
-        state.shopping = false;
+        // state.shopping = false;
+        state.deckLooking = true;
       }),
 
     endUpgrading: () =>
       set((state) => {
         state.upgrading = false;
         state.boards[0].selectedTiles = [];
+        state.boards[0].selectedDeckTiles = [];
       }),
 
     toggleDeckView: () =>
@@ -223,6 +240,9 @@ export const useGameStore = create<GameState & Actions>()(
           boardState.lines = 99;
           boardState.score = 0;
           state.choosing = true;
+          // clear the board of tiles after completion?
+          // TODO: if doing that, fix upgrades to work with tile deck instead of existing tiles.
+          boardState.tiles = [];
         } else {
           boardState.lines--;
         }
@@ -658,6 +678,7 @@ const initBoard = (
     usedUpgrades: [],
     ownedItems: [],
     selectedTiles: [],
+    selectedDeckTiles: [],
     usableDeck: deckOfTiles,
     temporaryDeck: [],
     upgradedDeck: [],

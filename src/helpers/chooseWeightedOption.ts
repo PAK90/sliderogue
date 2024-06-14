@@ -1,10 +1,11 @@
-import { TileType } from "../state";
+import { TileType, TileUpgrades } from "../state";
 
 export type Option = {
   weight: number;
   id: string;
   type: TileType;
   value?: number;
+  upgrades?: TileUpgrades[];
 };
 
 export default function chooseWeightedOption(options: Option[]): Option {

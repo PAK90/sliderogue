@@ -27,6 +27,7 @@ const Board = ({
     basePoints,
     multiplier,
     ownedItems,
+    usableDeck,
   } = board;
   const {
     setDraggedPath,
@@ -35,6 +36,7 @@ const Board = ({
     applyUpgrade,
     openShopping,
     endUpgrading,
+    toggleDeckView,
   } = useGameStore();
 
   const [drawing, setDrawing] = useState(false);
@@ -100,7 +102,7 @@ const Board = ({
     //   ),
     // );
     const baseManaCostPerTile = 10;
-    const manaIncreasePerTile = 1.3;
+    const manaIncreasePerTile = 1.1;
     setManaUsed(
       draggedCells.reduce((manaTotal, dTile, dTileIx) => {
         const draggedTile = tiles.find(
@@ -126,10 +128,10 @@ const Board = ({
       <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${gold}`}</div>
       <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}/${targetScore}`}</div>
       <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Lines left: ${lines}`}</div>
-      {/*<div*/}
-      {/*  onClick={toggleDeckView}*/}
-      {/*  className="bg-indigo-200 w-fit m-1 p-0.5 rounded cursor-pointer"*/}
-      {/*>{`Tiles left: ${deck.length}`}</div>*/}
+      <div
+        onClick={toggleDeckView}
+        className="bg-indigo-200 w-fit m-1 p-0.5 rounded cursor-pointer"
+      >{`Tiles left: ${usableDeck.length}`}</div>
       <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Mana: ${mana}`}</div>
       <div
         className={`${manaUsed > mana ? "bg-red-200" : "bg-indigo-200"} w-fit m-1 p-0.5 rounded`}
@@ -145,20 +147,23 @@ const Board = ({
         </button>
       )}
       {upgrading && (
-        <button
-          disabled={
-            upgrading.minTiles > selectedTiles.length ||
-            selectedTiles.length > upgrading.maxTiles
-          }
-          onClick={() => {
-            applyUpgrade(upgrading);
-            openShopping();
-            endUpgrading();
-          }}
-          className="font-bold text-xl p-1 rounded border-gray-900 border-4"
-        >
-          Upgrade Tiles
-        </button>
+        <>
+          <button
+            disabled={
+              upgrading.minTiles > selectedTiles.length ||
+              selectedTiles.length > upgrading.maxTiles
+            }
+            onClick={() => {
+              applyUpgrade(upgrading);
+              openShopping();
+              endUpgrading();
+            }}
+            className="font-bold text-xl p-1 rounded border-gray-900 border-4"
+          >
+            Upgrade Tiles
+          </button>
+          <div>{`Select ${upgrading.minTiles} to ${upgrading.maxTiles} tiles, then click Upgrade Tiles`}</div>
+        </>
       )}
       <div className="w-full bg-gray-400 p-1 relative">
         <div

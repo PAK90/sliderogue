@@ -525,7 +525,7 @@ export const useGameStore = create<GameState & Actions>()(
                   state.boards[boardIndex].tiles,
                 ).position,
                 type: state.boards[boardIndex].usableDeck[0].type,
-                upgrades: [],
+                upgrades: state.boards[boardIndex].usableDeck[0].upgrades || [],
               },
             );
             // remove that tile from the usableDeck
@@ -571,7 +571,11 @@ export const useGameStore = create<GameState & Actions>()(
           // newSpell.spell.spawns,
           newSpell,
           newSpell.spell.spawns
-            .map((st) => Array.from({ length: 20 }, () => ({ ...st })))
+            .map((st) =>
+              Array.from({ length: 20 }, () => ({
+                ...st,
+              })),
+            )
             .flat(),
         );
         state.boards = [myBoard];

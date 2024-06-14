@@ -284,11 +284,11 @@ export const useGameStore = create<GameState & Actions>()(
         const deckFromSpawns = newSpell.spawns
           .map((st) => Array.from({ length: 20 }, () => ({ ...st })))
           .flat();
-        boardState.usableDeck = shuffleArray(
-          deckFromSpawns.concat(boardState.upgradedDeck),
-        );
         boardState.upgradedDeck = boardState.upgradedDeck.concat(
           boardState.temporaryDeck,
+        );
+        boardState.usableDeck = shuffleArray(
+          deckFromSpawns.concat(boardState.upgradedDeck),
         );
         boardState.temporaryDeck = [];
       }),

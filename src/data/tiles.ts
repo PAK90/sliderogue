@@ -1,16 +1,51 @@
 import { Option } from "../helpers/chooseWeightedOption.ts";
 
-const tile2: Option = { id: "2", weight: 80, type: "NUMBER" };
-const tile4: Option = { id: "4", weight: 10, type: "NUMBER" };
-const storeTile: Option = { id: "$", weight: 5, type: "NUMBER" };
+const tile2: Option = { id: "2", weight: 80, type: "NUMBER", fromLine: false };
+const tile4: Option = { id: "4", weight: 10, type: "NUMBER", fromLine: false };
+const storeTile: Option = {
+  id: "$",
+  weight: 5,
+  type: "NUMBER",
+  fromLine: false,
+};
 
-export const swordTile: Option = { id: "†", weight: 100, type: "WEAPON" };
-export const zombieTile: Option = { id: "Z", weight: 100, type: "ENEMY" };
+export const swordTile: Option = {
+  id: "†",
+  weight: 100,
+  type: "WEAPON",
+  fromLine: false,
+};
+export const zombieTile: Option = {
+  id: "Z",
+  weight: 100,
+  type: "ENEMY",
+  fromLine: false,
+};
 
-export const fireTile: Option = { id: "F", weight: 100, type: "ELEMENTAL" };
-export const waterTile: Option = { id: "W", weight: 100, type: "ELEMENTAL" };
-export const earthTile: Option = { id: "E", weight: 100, type: "ELEMENTAL" };
-export const airTile: Option = { id: "A", weight: 100, type: "ELEMENTAL" };
+export const fireTile: Option = {
+  id: "F",
+  weight: 100,
+  type: "ELEMENTAL",
+  fromLine: false,
+};
+export const waterTile: Option = {
+  id: "W",
+  weight: 100,
+  type: "ELEMENTAL",
+  fromLine: false,
+};
+export const earthTile: Option = {
+  id: "E",
+  weight: 100,
+  type: "ELEMENTAL",
+  fromLine: false,
+};
+export const airTile: Option = {
+  id: "A",
+  weight: 100,
+  type: "ELEMENTAL",
+  fromLine: false,
+};
 // export const fire4Tile: Option = { ...fireTile, weight: 10, value: 4 };
 // export const water4Tile: Option = { ...waterTile, weight: 10, value: 4 };
 

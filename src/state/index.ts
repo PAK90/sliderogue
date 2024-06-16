@@ -175,7 +175,7 @@ export const useGameStore = create<GameState & Actions>()(
             ),
         );
 
-        const percentPerTileLength = 100;
+        // const percentPerTileLength = 100;
         const baseManaCostPerTile = 10;
         const manaIncreasePerTile = 1.1;
 

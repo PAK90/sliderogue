@@ -35,6 +35,7 @@ export type Tile = {
   value: number;
   name: string;
   id: number;
+  fromLine: boolean;
   type: TileType;
   upgrades: TileUpgrades[];
 };
@@ -194,20 +195,30 @@ export const useGameStore = create<GameState & Actions>()(
           0,
         );
 
+        // console.log("temp bs before: ", boardState.temporaryDeck);
         // then, add the dragged tiles randomly to the temporary deck (that will be merged to defaultDeck later)
         boardState.temporaryDeck = draggedTiles.reduce(
-          (deckState, draggedTile) => {
-            deckState.splice(Math.floor(Math.random() * deckState.length), 0, {
-              weight: 100,
-              type: draggedTile.type,
-              value: draggedTile.value,
-              id: draggedTile.name,
-              upgrades: draggedTile.upgrades,
-            });
-            return deckState;
+          (tempDeckState, draggedTile) => {
+            // only add tiles that have been modified after being saved and then re-spawned
+            if (!draggedTile.fromLine) {
+              tempDeckState.splice(
+                Math.floor(Math.random() * tempDeckState.length),
+                0,
+                {
+                  weight: 100,
+                  type: draggedTile.type,
+                  value: draggedTile.value,
+                  fromLine: true,
+                  id: draggedTile.name,
+                  upgrades: draggedTile.upgrades,
+                },
+              );
+            }
+            return tempDeckState;
           },
           boardState.temporaryDeck,
         );
+        // console.log("temp bs after: ", boardState.temporaryDeck);
 
         // then, delete the dragged tiles from the board
         boardState.tiles = draggedTiles.reduce((tileState, draggedTile) => {
@@ -217,9 +228,14 @@ export const useGameStore = create<GameState & Actions>()(
         }, boardState.tiles);
         // then make the score equal to the total of dragged tiles' value multiplied by x% per cell
         // NOT equal to dragged cells; there's a difference (that a relic will probably change).
+        // boardState.score +=
+        //   draggedTiles.reduce((total, t) => total + t.value, 0) *
+        //   ((draggedTiles.length * percentPerTileLength) / 100) *
+        //   (satisfiesActiveSpell ? 2 : 1);
+        // calculate the score using the state-provided numbers, since we can
         boardState.score +=
-          draggedTiles.reduce((total, t) => total + t.value, 0) *
-          ((draggedTiles.length * percentPerTileLength) / 100) *
+          boardState.multiplier *
+          boardState.basePoints *
           (satisfiesActiveSpell ? 2 : 1);
 
         const targetIncrease = 1.5;
@@ -241,8 +257,8 @@ export const useGameStore = create<GameState & Actions>()(
           boardState.score = 0;
           state.choosing = true;
           // clear the board of tiles after completion?
-          // TODO: if doing that, fix upgrades to work with tile deck instead of existing tiles.
           boardState.tiles = [];
+          boardState.mana = 0;
         } else {
           boardState.lines--;
         }
@@ -468,6 +484,9 @@ export const useGameStore = create<GameState & Actions>()(
                   tileHere.position = positions.next;
                   tileHere.value *= 2;
                   tileHere.upgrades = combinedUpgrades;
+                  // set the tile to now be 'aged', i.e. it can show up again
+                  // in the tile deck/bag, since it now has a new value.
+                  tileHere.fromLine = false;
 
                   // update the score... and mana.
                   // state.boards[boardIndex].score += tileHere.value;
@@ -525,6 +544,9 @@ export const useGameStore = create<GameState & Actions>()(
         if (moved) {
           // add a random tile if any are left.
           if (state.boards[boardIndex].usableDeck.length > 0) {
+            const newPickedOption = state.boards[boardIndex].usableDeck[0];
+
+            console.log("picked tile has fromLine: ", newPickedOption.fromLine);
             boardState.tiles.push(
               // addRandomTile(
               //   boardState.tiles,
@@ -537,15 +559,16 @@ export const useGameStore = create<GameState & Actions>()(
               // ),
               {
                 id: uniqueId(),
-                name: state.boards[boardIndex].usableDeck[0].id.toString(),
-                value: state.boards[boardIndex].usableDeck[0].value || 2,
+                name: newPickedOption.id.toString(),
+                value: newPickedOption.value || 2,
                 position: chooseEmptyTilePosition(
                   state.boards[boardIndex].boardWidth,
                   state.boards[boardIndex].boardHeight,
                   state.boards[boardIndex].tiles,
                 ).position,
+                fromLine: newPickedOption.fromLine,
                 type: state.boards[boardIndex].usableDeck[0].type,
-                upgrades: state.boards[boardIndex].usableDeck[0].upgrades || [],
+                upgrades: newPickedOption.upgrades || [],
               },
             );
             // remove that tile from the usableDeck
@@ -720,6 +743,7 @@ const initBoard = (
     name: shuffledDeck[ssIx].id.toString(),
     value: shuffledDeck[ssIx].value || 2,
     position: ss.position,
+    fromLine: false,
     type: shuffledDeck[ssIx].type,
     upgrades: [],
   }));

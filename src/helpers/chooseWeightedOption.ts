@@ -4,6 +4,7 @@ export type Option = {
   weight: number;
   id: string;
   type: TileType;
+  fromLine: boolean;
   value?: number;
   upgrades?: TileUpgrades[];
 };

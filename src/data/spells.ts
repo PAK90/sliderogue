@@ -118,12 +118,60 @@ const staticsparkSpell: Spell = {
 //   spawns: [],
 // };
 
+const airSpell1: Spell = {
+  name: "Static Sparks",
+  requiredTiles: [
+    { tileName: airTile.id, tileValue: 4 },
+    { tileName: fireTile.id, tileValue: 4 },
+    { tileName: airTile.id, tileValue: 8 },
+    { tileName: fireTile.id, tileValue: 8 },
+  ],
+  spawns: [airTile, fireTile],
+};
+
+const airSpell2: Spell = {
+  name: "Static Sparks2",
+  requiredTiles: [
+    { tileName: airTile.id, tileValue: 2 },
+    { tileName: fireTile.id, tileValue: 4 },
+    { tileName: airTile.id, tileValue: 8 },
+    { tileName: fireTile.id, tileValue: 16 },
+  ],
+  spawns: [airTile, fireTile],
+};
+
+const airSpell3: Spell = {
+  name: "Static Sparks3",
+  requiredTiles: [
+    { tileName: airTile.id, tileValue: 16 },
+    { tileName: fireTile.id, tileValue: 16 },
+    { tileName: airTile.id, tileValue: 16 },
+  ],
+  spawns: [airTile, fireTile],
+};
+
+const airSpell4: Spell = {
+  name: "Static Sparks4",
+  requiredTiles: [
+    { tileName: airTile.id, tileValue: 2 },
+    { tileName: fireTile.id, tileValue: 2 },
+    { tileName: airTile.id, tileValue: 4 },
+    { tileName: fireTile.id, tileValue: 4 },
+    { tileName: airTile.id, tileValue: 4 },
+  ],
+  spawns: [airTile, fireTile],
+};
+
 export const spells = [
-  steamSpell,
+  // steamSpell,
   // rainbowSpell,
-  lavaSpell,
-  staticsparkSpell,
-  mistySpell,
-  mudflowSpell,
-  sandstormSpell,
+  // lavaSpell,
+  // staticsparkSpell,
+  // mistySpell,
+  // mudflowSpell,
+  // sandstormSpell,
+  airSpell1,
+  airSpell2,
+  airSpell3,
+  airSpell4,
 ];

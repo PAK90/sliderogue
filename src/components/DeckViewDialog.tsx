@@ -29,6 +29,7 @@ const GoalChooserDialog = () => {
     const upgradeColourMap = {
       GOLD: "#e3b006",
       SILVER: "#e1e8f1",
+      EXPLOSIVE: "#a80000",
     };
     const shadowString = (
       t.upgrades?.map(

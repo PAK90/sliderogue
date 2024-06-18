@@ -1,5 +1,5 @@
 import { WritableDraft } from "immer";
-import { Actions, GameState, Tile } from "../state";
+import { Actions, GameState } from "../state";
 import shuffleArray from "../helpers/shuffleArray.ts";
 // import { tile8 } from "./tiles.ts";
 
@@ -135,43 +135,43 @@ const goldUpgrade: Upgrade = {
   maxTiles: 2,
 };
 
-const shuffle: Upgrade = {
-  name: "Shuffle",
-  description: "Randomises all the tile positions",
-  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
-    const randomTiles: Tile[] = [];
-
-    state.boards[0].tiles.forEach((tile) => {
-      let potentialNewCellPos = {
-        x: Math.floor(Math.random() * state.boards[0].boardWidth),
-        y: Math.floor(Math.random() * state.boards[0].boardHeight),
-      };
-      while (
-        randomTiles.find(
-          (t) =>
-            t.position.x === potentialNewCellPos.x &&
-            t.position.y === potentialNewCellPos.y,
-        )
-      ) {
-        potentialNewCellPos = {
-          x: Math.floor(Math.random() * state.boards[0].boardWidth),
-          y: Math.floor(Math.random() * state.boards[0].boardHeight),
-        };
-      }
-
-      randomTiles.push({ ...tile, position: potentialNewCellPos });
-    });
-    state.boards[0].tiles = randomTiles;
-    return state;
-  },
-  type: "BOARD",
-  cost: 3,
-  tier: 1,
-  weight: 100,
-  costMultiplier: 2,
-  minTiles: 0,
-  maxTiles: 0,
-};
+// const shuffle: Upgrade = {
+//   name: "Shuffle",
+//   description: "Randomises all the tile positions",
+//   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+//     const randomTiles: Tile[] = [];
+//
+//     state.boards[0].tiles.forEach((tile) => {
+//       let potentialNewCellPos = {
+//         x: Math.floor(Math.random() * state.boards[0].boardWidth),
+//         y: Math.floor(Math.random() * state.boards[0].boardHeight),
+//       };
+//       while (
+//         randomTiles.find(
+//           (t) =>
+//             t.position.x === potentialNewCellPos.x &&
+//             t.position.y === potentialNewCellPos.y,
+//         )
+//       ) {
+//         potentialNewCellPos = {
+//           x: Math.floor(Math.random() * state.boards[0].boardWidth),
+//           y: Math.floor(Math.random() * state.boards[0].boardHeight),
+//         };
+//       }
+//
+//       randomTiles.push({ ...tile, position: potentialNewCellPos });
+//     });
+//     state.boards[0].tiles = randomTiles;
+//     return state;
+//   },
+//   type: "BOARD",
+//   cost: 3,
+//   tier: 1,
+//   weight: 100,
+//   costMultiplier: 2,
+//   minTiles: 0,
+//   maxTiles: 0,
+// };
 
 // const addEightTile: Upgrade = {
 //   name: "8-Tile",
@@ -222,13 +222,46 @@ const shuffle: Upgrade = {
 //   weight: 100,
 // };
 
+const explosiveUpgrade: Upgrade = {
+  name: "Explosive Infusion",
+  description:
+    "Upgrades up to two tiles to be Explosive." +
+    "\nExplosive tiles will remove tiles above/below/beside them when absorbed by the line." +
+    "\nTiles removed this way will not be added to the deck.",
+  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+    const board = state.boards[0];
+    const { selectedDeckTiles } = board;
+    selectedDeckTiles.forEach((tileIx) => {
+      const potentialUpgrades = board.upgradedDeck[tileIx].upgrades;
+      if (potentialUpgrades) {
+        potentialUpgrades.push("EXPLOSIVE");
+      } else {
+        board.upgradedDeck[tileIx].upgrades = ["EXPLOSIVE"];
+      }
+    });
+    const deckFromSpawns = board.availableSpells[0].spell.spawns
+      .map((st) => Array.from({ length: 20 }, () => ({ ...st })))
+      .flat();
+    board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));
+    return state;
+  },
+  type: "TILE",
+  cost: 1,
+  tier: 2,
+  weight: 100,
+  costMultiplier: 2,
+  minTiles: 1,
+  maxTiles: 2,
+};
+
 export const upgrades = [
   // addEightTile,
   // addDivTwoTile,
   widthUpgrade,
   heightUpgrade,
   // upgradeShopTile,
-  shuffle,
+  // shuffle,
   silverUpgrade,
   goldUpgrade,
+  explosiveUpgrade,
 ];

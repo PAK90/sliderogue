@@ -26,6 +26,7 @@ const TileRender = ({ tile }: { tile: Tile }) => {
   const upgradeColourMap = {
     GOLD: "#e3b006",
     SILVER: "#e1e8f1",
+    EXPLOSIVE: "#a80000",
   };
 
   const { boards, upgrading, setSelectedTiles } = useGameStore();

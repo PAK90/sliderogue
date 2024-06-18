@@ -28,7 +28,7 @@ export type Coordinate = {
 };
 
 export type TileType = "WEAPON" | "ENEMY" | "NUMBER" | "ELEMENTAL";
-export type TileUpgrades = "GOLD" | "SILVER";
+export type TileUpgrades = "GOLD" | "SILVER" | "EXPLOSIVE";
 
 export type Tile = {
   position: Coordinate;
@@ -195,7 +195,6 @@ export const useGameStore = create<GameState & Actions>()(
           0,
         );
 
-        // console.log("temp bs before: ", boardState.temporaryDeck);
         // then, add the dragged tiles randomly to the temporary deck (that will be merged to defaultDeck later)
         boardState.temporaryDeck = draggedTiles.reduce(
           (tempDeckState, draggedTile) => {
@@ -218,11 +217,36 @@ export const useGameStore = create<GameState & Actions>()(
           },
           boardState.temporaryDeck,
         );
-        // console.log("temp bs after: ", boardState.temporaryDeck);
 
         // then, delete the dragged tiles from the board
+        const toDeleteTiles: Tile[] = [];
         boardState.tiles = draggedTiles.reduce((tileState, draggedTile) => {
           const dtIx = tileState.findIndex((t) => t.id === draggedTile.id);
+          if (dtIx !== -1) {
+            if (tileState[dtIx].upgrades.includes("EXPLOSIVE")) {
+              // delete the tiles above, below and to either side of this one too
+              [
+                [1, 0],
+                [-1, 0],
+                [0, 1],
+                [0, -1],
+              ].forEach((d) => {
+                const adjTile = tileState.find(
+                  (t) =>
+                    t.position.x === tileState[dtIx].position.x + d[0] &&
+                    t.position.y === tileState[dtIx].position.y + d[1],
+                );
+                if (adjTile) {
+                  toDeleteTiles.push(adjTile);
+                }
+              });
+            }
+            tileState.splice(dtIx, 1);
+          }
+          return tileState;
+        }, boardState.tiles);
+        boardState.tiles = toDeleteTiles.reduce((tileState, toDeleteTile) => {
+          const dtIx = tileState.findIndex((t) => t.id === toDeleteTile.id);
           tileState.splice(dtIx, 1);
           return tileState;
         }, boardState.tiles);
@@ -546,7 +570,7 @@ export const useGameStore = create<GameState & Actions>()(
           if (state.boards[boardIndex].usableDeck.length > 0) {
             const newPickedOption = state.boards[boardIndex].usableDeck[0];
 
-            console.log("picked tile has fromLine: ", newPickedOption.fromLine);
+            // console.log("picked tile has fromLine: ", newPickedOption.fromLine);
             boardState.tiles.push(
               // addRandomTile(
               //   boardState.tiles,

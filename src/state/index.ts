@@ -5,7 +5,7 @@ import { Upgrade } from "../upgrades.ts";
 import { addRandomTile } from "../helpers/addRandomTile.ts";
 // import { defaultTiles } from "../tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
-import { swordTile, zombieTile } from "../tiles.ts";
+import { rockTile, swordTile, zombieTile } from "../tiles.ts";
 // import range from "../helpers/range.ts";
 
 type Direction = "up" | "down" | "left" | "right";
@@ -22,7 +22,7 @@ export type Coordinate = {
   y: number;
 };
 
-export type TileType = "WEAPON" | "ENEMY" | "NUMBER";
+export type TileType = "WEAPON" | "ENEMY" | "NUMBER" | "STATIC";
 
 export type Tile = {
   position: Coordinate;
@@ -97,7 +97,8 @@ export const useGameStore = create<GameState & Actions>()(
           state.boardWidth,
           state.boardHeight,
         );
-        // let moved = false;
+        let moved = false;
+        let damageDone = false;
 
         traversals.x.forEach((xTrav) => {
           traversals.y.forEach((yTrav) => {
@@ -126,6 +127,7 @@ export const useGameStore = create<GameState & Actions>()(
 
               if (
                 nextPotentialTile &&
+                tileHere.type !== "STATIC" &&
                 // tilesCanMerge(tileHere, nextPotentialTile)
                 tileHere.name === nextPotentialTile.name
               ) {
@@ -139,7 +141,14 @@ export const useGameStore = create<GameState & Actions>()(
                 state.tiles.splice(nextTileIx, 1);
 
                 tileHere.position = positions.next;
-                tileHere.value = nextPotentialTile.value + tileHere.value;
+                if (
+                  tileHere.type === "ENEMY" &&
+                  nextPotentialTile.type === "ENEMY"
+                ) {
+                  tileHere.value = nextPotentialTile.value * tileHere.value;
+                } else {
+                  tileHere.value = nextPotentialTile.value + tileHere.value;
+                }
 
                 // update the score
                 state.score += tileHere.value;
@@ -154,6 +163,7 @@ export const useGameStore = create<GameState & Actions>()(
 
                 // also self-damage the weapon by 1
                 tileHere.value -= 1;
+                damageDone = true;
 
                 // delete the hit tile if its value is below 0.
                 if (nextPotentialTile.value <= 0) {
@@ -168,7 +178,7 @@ export const useGameStore = create<GameState & Actions>()(
                   );
                   state.tiles.splice(tileHereIx, 1);
                 }
-              } else {
+              } else if (tileHere?.type !== "STATIC") {
                 // no tile collision, just move the current tile along.
                 tileHere.position = positions.farthest;
               }
@@ -176,23 +186,23 @@ export const useGameStore = create<GameState & Actions>()(
                 tileHere.position.x !== currentCell.x ||
                 tileHere.position.y !== currentCell.y
               ) {
-                // moved = true;
+                moved = true;
               }
             }
           });
         });
 
-        // if (moved) {
-        //   // add a random tile
-        //   state.tiles.push(
-        //     addRandomTile(
-        //       state.tiles,
-        //       state.boardWidth,
-        //       state.boardHeight,
-        //       state.tilesToSpawn,
-        //     ),
-        //   );
-        // }
+        if (moved || damageDone) {
+          // add a random tile
+          state.tiles.push(
+            addRandomTile(
+              state.tiles,
+              state.boardWidth,
+              state.boardHeight,
+              state.tilesToSpawn,
+            ),
+          );
+        }
       }),
 
     resetGame: () => {
@@ -203,9 +213,9 @@ export const useGameStore = create<GameState & Actions>()(
         state.boardHeight = 5;
         state.tiles = [];
         state.tilesToSpawn = [
-          { ...zombieTile, value: 4 },
-          { ...zombieTile, value: 4 },
-          { ...zombieTile, value: 4 },
+          // { ...zombieTile, value: 4 },
+          // { ...zombieTile, value: 4 },
+          { ...zombieTile, value: 2 },
           { ...zombieTile, value: 4 },
           { ...swordTile, value: 4 },
           swordTile,
@@ -224,13 +234,15 @@ export const useGameStore = create<GameState & Actions>()(
         //   state.boardHeight,
         //   state.tilesToSpawn,
         // );
-        const tilesToAdd = state.tilesToSpawn.reduce((tta, option) => {
-          tta.push(
-            // @ts-expect-error stupid never
-            addRandomTile(tta, state.boardWidth, state.boardHeight, [option]),
-          );
-          return tta;
-        }, []);
+        const tilesToAdd = [rockTile, rockTile, rockTile]
+          .concat(state.tilesToSpawn)
+          .reduce((tta, option) => {
+            tta.push(
+              // @ts-expect-error stupid never
+              addRandomTile(tta, state.boardWidth, state.boardHeight, [option]),
+            );
+            return tta;
+          }, []);
         state.tiles = state.tiles.concat(tilesToAdd);
       });
     },

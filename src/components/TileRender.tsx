@@ -17,6 +17,7 @@ const TileRender = ({ tile }: { tile: Tile }) => {
     1024: "bg-orange-500",
     "†": "bg-orange-200",
     Z: "bg-green-300",
+    R: "bg-amber-700",
   };
 
   // const { openShopping, gold } = useGameStore();

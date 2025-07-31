@@ -6,6 +6,7 @@ const storeTile: Option = { id: "$", weight: 5, type: "NUMBER" };
 
 export const swordTile: Option = { id: "†", weight: 100, type: "WEAPON" };
 export const zombieTile: Option = { id: "Z", weight: 100, type: "ENEMY" };
+export const rockTile: Option = { id: "R", weight: 100, type: "STATIC" };
 
 // export const tile8 = { id: 8, weight: 10 };
 // export const x2Tile = { id: "x2", weight: 5 };

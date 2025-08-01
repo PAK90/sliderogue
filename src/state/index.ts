@@ -54,6 +54,7 @@ export type BoardState = {
   ownedItems: string[];
   selectedTiles: Tile[];
   selectedDeckTiles: number[];
+  lockedTileNames: string[];
 
   basePoints: number;
   multiplier: number;
@@ -86,6 +87,7 @@ export type Actions = {
   toggleDeckView: () => void;
   openShopping: () => void;
   closeShopping: () => void;
+  setLockedTileNames: (l: string[]) => void;
   applyUpgrade: (u: Upgrade | Item) => void;
   // setTilesToSpawn: (t: Option[]) => void;
   enspellTile: (t: Tile) => void;
@@ -409,6 +411,11 @@ export const useGameStore = create<GameState & Actions>()(
         }
       }),
 
+    setLockedTileNames: (lockedNames: string[]) =>
+      set((state) => {
+        state.boards[0].lockedTileNames = lockedNames;
+      }),
+
     openShopping: () =>
       set((state) => {
         state.shopping = true;
@@ -452,7 +459,10 @@ export const useGameStore = create<GameState & Actions>()(
                 t.position.y === currentCell.y,
             );
 
-            if (tileHere) {
+            if (
+              tileHere &&
+              !boardState.lockedTileNames.includes(tileHere.name)
+            ) {
               const positions = findFarthestPosition(
                 currentCell,
                 vector,
@@ -729,6 +739,7 @@ const initBoard = (
     usableDeck: deckOfTiles,
     temporaryDeck: [],
     upgradedDeck: [],
+    lockedTileNames: [],
   };
   /// INFINITE TILE STUFF STARTS HERE
   // const tilesToAdd = newBoardState.baseTilesToSpawn.reduce((tta, option) => {

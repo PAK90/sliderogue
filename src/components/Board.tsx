@@ -4,6 +4,7 @@ import { BoardState, Coordinate, useGameStore } from "../state";
 import SpellRender from "./SpellRender.tsx";
 import { useCallback, useEffect, useState } from "react";
 import ConnectionRender from "./ConnectionRender.tsx";
+import { tileColourMap } from "../data/constants.ts";
 
 const Board = ({
   board,
@@ -28,6 +29,7 @@ const Board = ({
     multiplier,
     ownedItems,
     usableDeck,
+    lockedTileNames,
   } = board;
   const {
     setDraggedPath,
@@ -37,6 +39,7 @@ const Board = ({
     openShopping,
     endUpgrading,
     toggleDeckView,
+    setLockedTileNames,
   } = useGameStore();
 
   const [drawing, setDrawing] = useState(false);
@@ -120,6 +123,14 @@ const Board = ({
 
   const tileSize = 448 / 5;
 
+  const lockTile = (tileName: string) => {
+    if (lockedTileNames.includes(tileName)) {
+      setLockedTileNames([]);
+    } else {
+      setLockedTileNames([tileName]);
+    }
+  };
+
   return (
     <div className="flex-col">
       <div className="bg-green-200 w-fit m-1 p-0.5 rounded">
@@ -137,6 +148,21 @@ const Board = ({
         className={`${manaUsed > mana ? "bg-red-200" : "bg-indigo-200"} w-fit m-1 p-0.5 rounded`}
       >{`Mana used: ${manaUsed}`}</div>
       <div className="bg-gray-700 w-fit m-1 p-0.5 rounded text-gray-200">{`Items: ${ownedItems.join(", ")}`}</div>
+      <div>
+        {tiles
+          .reduce<string[]>((listOfTileNames, tile) => {
+            if (listOfTileNames.includes(tile.name)) {
+              return listOfTileNames;
+            }
+            return [...listOfTileNames, tile.name];
+          }, [])
+          .map((tileName: string) => (
+            <button
+              className={`rounded m-1 p-0.5 ${tileColourMap[tileName as keyof typeof tileColourMap]}`}
+              onClick={() => lockTile(tileName)}
+            >{`${lockedTileNames.includes(tileName) ? "Unlock" : "Lock  "} ${tileName}`}</button>
+          ))}
+      </div>
       <div>{`${basePoints} x ${multiplier} = ${basePoints * multiplier}`}</div>
       {!upgrading && (
         <button

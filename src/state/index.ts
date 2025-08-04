@@ -11,6 +11,7 @@ import { Item } from "../data/items.ts";
 import { chooseEmptyTilePosition } from "../helpers/chooseEmptyTilePosition.ts";
 import { uniqueId } from "../helpers/uniqueId.ts";
 import shuffleArray from "../helpers/shuffleArray.ts";
+import { Enemy, GolbinEnemy } from "../data/enemies.ts";
 // import range from "../helpers/range.ts";
 
 export type Direction = "up" | "down" | "left" | "right";
@@ -40,6 +41,11 @@ export type Tile = {
   upgrades: TileUpgrades[];
 };
 
+export type Player = {
+  maxHealth: number;
+  currentHealth: number;
+};
+
 export type BoardState = {
   tiles: Tile[];
   boardWidth: number;
@@ -55,6 +61,7 @@ export type BoardState = {
   selectedTiles: Tile[];
   selectedDeckTiles: number[];
   lockedTileNames: string[];
+  numberOfSlides: number;
 
   basePoints: number;
   multiplier: number;
@@ -71,7 +78,9 @@ export type BoardState = {
 };
 
 export type GameState = {
+  player: Player;
   boards: BoardState[];
+  enemies: Enemy[];
   choosing: boolean;
   shopping: boolean;
   upgrading: false | Upgrade;
@@ -105,6 +114,8 @@ export const useGameStore = create<GameState & Actions>()(
     upgrading: false,
     deckLooking: false,
     boards: [],
+    enemies: [GolbinEnemy, { ...GolbinEnemy, position: 1 }],
+    player: { maxHealth: 50, currentHealth: 50 },
     imminentAnnihilations: [],
 
     setSelectedTiles: (t: Tile, bIx: number) =>
@@ -576,6 +587,19 @@ export const useGameStore = create<GameState & Actions>()(
         });
 
         if (moved) {
+          // record a move!
+          boardState.numberOfSlides++;
+
+          // for each enemy, check if their abilities should activate
+          state.enemies.forEach((enemy) => {
+            enemy.abilities.forEach((ability) => {
+              if (boardState.numberOfSlides % ability.slidesToActivate === 0) {
+                state = ability.stateUpdater(state);
+                console.log("activated enemy ability", ability);
+              }
+            });
+          });
+
           // add a random tile if any are left.
           if (state.boards[boardIndex].usableDeck.length > 0) {
             const newPickedOption = state.boards[boardIndex].usableDeck[0];
@@ -730,6 +754,7 @@ const initBoard = (
     baseTilesToSpawn: tilesToStart,
     newTilesToSpawn: newSpell.spell.spawns,
     availableSpells: [],
+    numberOfSlides: 0,
     activeSpell: 0,
     draggedCells: [],
     usedUpgrades: [],

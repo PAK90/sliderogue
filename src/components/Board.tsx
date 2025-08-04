@@ -5,6 +5,7 @@ import SpellRender from "./SpellRender.tsx";
 import { useCallback, useEffect, useState } from "react";
 import ConnectionRender from "./ConnectionRender.tsx";
 import { tileColourMap } from "../data/constants.ts";
+import CombatBoard from "./CombatBoard.tsx";
 
 const Board = ({
   board,
@@ -133,21 +134,22 @@ const Board = ({
 
   return (
     <div className="flex-col">
-      <div className="bg-green-200 w-fit m-1 p-0.5 rounded">
-        {`Patterns completed (/record): ${spellsCompleted}/${spellsCompletedRecord}`}
-      </div>
+      {/*<div className="bg-green-200 w-fit m-1 p-0.5 rounded">*/}
+      {/*  {`Patterns completed (/record): ${spellsCompleted}/${spellsCompletedRecord}`}*/}
+      {/*</div>*/}
       <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${gold}`}</div>
       <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}/${targetScore}`}</div>
-      <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Lines left: ${lines}`}</div>
+      {/*<div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Lines left: ${lines}`}</div>*/}
       <div
         onClick={toggleDeckView}
         className="bg-indigo-200 w-fit m-1 p-0.5 rounded cursor-pointer"
-      >{`Tiles left: ${usableDeck.length}`}</div>
+      >{`Tiles left (click to see deck): ${usableDeck.length}`}</div>
       <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Mana: ${mana}`}</div>
       <div
         className={`${manaUsed > mana ? "bg-red-200" : "bg-indigo-200"} w-fit m-1 p-0.5 rounded`}
       >{`Mana used: ${manaUsed}`}</div>
       <div className="bg-gray-700 w-fit m-1 p-0.5 rounded text-gray-200">{`Items: ${ownedItems.join(", ")}`}</div>
+      <CombatBoard />
       <div>
         {tiles
           .reduce<string[]>((listOfTileNames, tile) => {

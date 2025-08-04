@@ -681,6 +681,8 @@ export const useGameStore = create<GameState & Actions>()(
         );
         state.boards = [myBoard];
         state.choosing = false;
+        state.player = { maxHealth: 50, currentHealth: 50 };
+        state.enemies = [GolbinEnemy, { ...GolbinEnemy, position: 1 }];
       });
     },
   })),

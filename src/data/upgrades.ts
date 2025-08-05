@@ -78,7 +78,8 @@ const silverUpgrade: Upgrade = {
         board.upgradedDeck[tileIx].upgrades = ["SILVER"];
       }
     });
-    const deckFromSpawns = board.availableSpells[0].spell.spawns
+    // FIXME: this has been set to [0] just to make it work.
+    const deckFromSpawns = state.player.chosenSpells[0].spell.spawns
       .map((st) => Array.from({ length: 20 }, () => ({ ...st })))
       .flat();
     board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));
@@ -120,7 +121,8 @@ const goldUpgrade: Upgrade = {
         board.upgradedDeck[tileIx].upgrades = ["GOLD"];
       }
     });
-    const deckFromSpawns = board.availableSpells[0].spell.spawns
+    // FIXME: this has been set to [0] just to make it work.
+    const deckFromSpawns = state.player.chosenSpells[0].spell.spawns
       .map((st) => Array.from({ length: 20 }, () => ({ ...st })))
       .flat();
     board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));
@@ -239,7 +241,8 @@ const explosiveUpgrade: Upgrade = {
         board.upgradedDeck[tileIx].upgrades = ["EXPLOSIVE"];
       }
     });
-    const deckFromSpawns = board.availableSpells[0].spell.spawns
+    // FIXME: this has been set to [0] just to make it work.
+    const deckFromSpawns = state.player.chosenSpells[0].spell.spawns
       .map((st) => Array.from({ length: 20 }, () => ({ ...st })))
       .flat();
     board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));

@@ -43,7 +43,7 @@ const SpellRender = ({
     <div>
       <div>
         <div className="flex space-x-1 p-2">
-          <div>{spellData.spell.name}</div>
+          <div>{`${spellData.spell.name} (${spellData.spell.description})`}</div>
           {spellData.spell.requiredTiles.map((rt, rtIx) => {
             return tileRender(rt, rtIx);
           })}

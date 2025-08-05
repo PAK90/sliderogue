@@ -13,14 +13,13 @@ const CombatBoard = () => {
   } = useGameStore();
   const boardState = boards[0];
   const { numberOfSlides } = boardState;
-  console.log("chosen: ", chosenTargets);
 
   function isEnemy(entity: Player | Enemy): entity is Enemy {
     return "abilities" in entity; // <– proper narrowing
   }
 
   const addToTargets = (eIndex: number) => {
-    setChosenTargets(eIndex);
+    if (targeting) setChosenTargets(eIndex);
   };
 
   const renderEntity = (entity: Player | Enemy, enemyIndex: number) => {

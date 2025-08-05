@@ -191,8 +191,8 @@ const fireballSpell: Spell = {
 };
 
 const waterHealingSpell: Spell = {
-  name: "Water Healing",
-  description: "Uses water in the air to heal you for 11 health.",
+  name: "Vitamin Water",
+  description: "Heals you for 11 health.",
   requiredTiles: [
     { tileName: waterTile.id, tileValue: 2 },
     { tileName: waterTile.id, tileValue: 4 },

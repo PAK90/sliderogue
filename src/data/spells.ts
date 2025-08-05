@@ -1,5 +1,7 @@
-import { airTile, fireTile } from "./tiles.ts";
+import { fireTile, waterTile } from "./tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
+import { WritableDraft } from "immer";
+import { Actions, GameState } from "../state";
 
 export const rollActiveSpellData = () => {
   const selectedSpell = rollRandomSpell();
@@ -15,10 +17,17 @@ export const rollRandomSpell = () => {
 
 export type Spell = {
   name: string;
+  description: string;
   requiredTiles: {
     tileName: string;
     tileValue: number;
   }[];
+  targets: "PLAYER" | "ENEMY" | "ALL"; //
+  targetQuantity: number;
+  stateUpdater: (
+    targets: number[], // indices of enemies, since if it's player we don't need, and ALL is all.
+    state: WritableDraft<GameState & Actions>,
+  ) => WritableDraft<GameState & Actions>;
   spawns: Option[];
 };
 
@@ -118,48 +127,84 @@ export type Spell = {
 //   spawns: [],
 // };
 
-const airSpell1: Spell = {
-  name: "Static Sparks",
-  requiredTiles: [
-    { tileName: airTile.id, tileValue: 4 },
-    { tileName: fireTile.id, tileValue: 4 },
-    { tileName: airTile.id, tileValue: 8 },
-    { tileName: fireTile.id, tileValue: 8 },
-  ],
-  spawns: [airTile, fireTile],
-};
+// const airSpell1: Spell = {
+//   name: "Static Sparks",
+//   requiredTiles: [
+//     { tileName: airTile.id, tileValue: 4 },
+//     { tileName: fireTile.id, tileValue: 4 },
+//     { tileName: airTile.id, tileValue: 8 },
+//     { tileName: fireTile.id, tileValue: 8 },
+//   ],
+//   spawns: [airTile, fireTile],
+// };
+//
+// const airSpell2: Spell = {
+//   name: "Static Sparks2",
+//   requiredTiles: [
+//     { tileName: airTile.id, tileValue: 2 },
+//     { tileName: fireTile.id, tileValue: 4 },
+//     { tileName: airTile.id, tileValue: 8 },
+//     { tileName: fireTile.id, tileValue: 16 },
+//   ],
+//   spawns: [airTile, fireTile],
+// };
+//
+// const airSpell3: Spell = {
+//   name: "Static Sparks3",
+//   requiredTiles: [
+//     { tileName: airTile.id, tileValue: 16 },
+//     { tileName: fireTile.id, tileValue: 16 },
+//     { tileName: airTile.id, tileValue: 16 },
+//   ],
+//   spawns: [airTile, fireTile],
+// };
+//
+// const airSpell4: Spell = {
+//   name: "Static Sparks4",
+//   requiredTiles: [
+//     { tileName: airTile.id, tileValue: 2 },
+//     { tileName: fireTile.id, tileValue: 2 },
+//     { tileName: airTile.id, tileValue: 4 },
+//     { tileName: fireTile.id, tileValue: 4 },
+//     { tileName: airTile.id, tileValue: 4 },
+//   ],
+//   spawns: [airTile, fireTile],
+// };
 
-const airSpell2: Spell = {
-  name: "Static Sparks2",
+const fireballSpell: Spell = {
+  name: "Fireball",
+  description: "Fires a flaming sphere at up to 2 targets.",
   requiredTiles: [
-    { tileName: airTile.id, tileValue: 2 },
-    { tileName: fireTile.id, tileValue: 4 },
-    { tileName: airTile.id, tileValue: 8 },
-    { tileName: fireTile.id, tileValue: 16 },
-  ],
-  spawns: [airTile, fireTile],
-};
-
-const airSpell3: Spell = {
-  name: "Static Sparks3",
-  requiredTiles: [
-    { tileName: airTile.id, tileValue: 16 },
-    { tileName: fireTile.id, tileValue: 16 },
-    { tileName: airTile.id, tileValue: 16 },
-  ],
-  spawns: [airTile, fireTile],
-};
-
-const airSpell4: Spell = {
-  name: "Static Sparks4",
-  requiredTiles: [
-    { tileName: airTile.id, tileValue: 2 },
     { tileName: fireTile.id, tileValue: 2 },
-    { tileName: airTile.id, tileValue: 4 },
     { tileName: fireTile.id, tileValue: 4 },
-    { tileName: airTile.id, tileValue: 4 },
+    // { tileName: fireTile.id, tileValue: 8 },
   ],
-  spawns: [airTile, fireTile],
+  spawns: [fireTile],
+  targets: "ENEMY",
+  targetQuantity: 2,
+  stateUpdater: (targets, state: WritableDraft<GameState & Actions>) => {
+    targets.forEach((target) => {
+      state.enemies[target].currentHealth -= 5;
+    });
+    return state;
+  },
+};
+
+const waterHealingSpell: Spell = {
+  name: "Water Healing",
+  description: "Uses water in the air to heal you for 11 health.",
+  requiredTiles: [
+    { tileName: waterTile.id, tileValue: 2 },
+    { tileName: waterTile.id, tileValue: 4 },
+    // { tileName: waterTile.id, tileValue: 8 },
+  ],
+  spawns: [waterTile],
+  targets: "PLAYER",
+  targetQuantity: 0, // shouldn't matter here with PLAYER as target
+  stateUpdater: (_, state: WritableDraft<GameState & Actions>) => {
+    state.player.currentHealth += 11;
+    return state;
+  },
 };
 
 export const spells = [
@@ -170,8 +215,10 @@ export const spells = [
   // mistySpell,
   // mudflowSpell,
   // sandstormSpell,
-  airSpell1,
-  airSpell2,
-  airSpell3,
-  airSpell4,
+  // airSpell1,
+  // airSpell2,
+  // airSpell3,
+  // airSpell4,
+  fireballSpell,
+  waterHealingSpell,
 ];

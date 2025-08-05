@@ -40,6 +40,9 @@ const Board = ({
     endUpgrading,
     toggleDeckView,
     setLockedTileNames,
+    player,
+    targeting,
+    submitTargetsToSpell,
   } = useGameStore();
 
   const [drawing, setDrawing] = useState(false);
@@ -165,14 +168,7 @@ const Board = ({
           ))}
       </div>
       <div>{`${basePoints} x ${multiplier} = ${basePoints * multiplier}`}</div>
-      {!upgrading && (
-        <button
-          onClick={() => useDraggedPath(boardIndex)}
-          className="font-bold text-xl p-1 rounded border-gray-900 border-4"
-        >
-          Combine Tiles
-        </button>
-      )}
+
       {upgrading && (
         <>
           <button
@@ -236,7 +232,23 @@ const Board = ({
         })}
         {/*</div>*/}
       </div>
-      {board.availableSpells.map((spell) => (
+      {!upgrading && (
+        <button
+          onClick={() => useDraggedPath(boardIndex)}
+          className="font-bold text-xl p-1 rounded border-gray-900 border-4"
+        >
+          Cast Selected Spells
+        </button>
+      )}
+      {targeting && (
+        <button
+          onClick={submitTargetsToSpell}
+          className="font-bold text-xl p-1 rounded border-gray-900 border-4"
+        >
+          Submit Targets
+        </button>
+      )}
+      {player.chosenSpells.map((spell) => (
         <SpellRender spellData={spell} />
       ))}
     </div>

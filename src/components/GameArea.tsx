@@ -2,7 +2,7 @@ import { useGameStore } from "../state";
 import React, { useEffect } from "react";
 import { useSwipeable } from "react-swipeable";
 import Board from "./Board.tsx";
-import GoalChooserDialog from "./GoalChooserDialog.tsx";
+// import GoalChooserDialog from "./GoalChooserDialog.tsx";
 import ShopDialog from "./ShopDialog.tsx";
 import DeckViewDialog from "./DeckViewDialog.tsx";
 
@@ -61,7 +61,7 @@ const GameArea = () => {
       {/*  .map((option) => {*/}
       {/*    return <div>{option.id}</div>;*/}
       {/*  })}*/}
-      <GoalChooserDialog />
+      {/*<GoalChooserDialog />*/}
       <ShopDialog />
       <DeckViewDialog />
       <div className="flex">

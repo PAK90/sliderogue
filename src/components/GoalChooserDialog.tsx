@@ -1,36 +1,35 @@
 import { useGameStore } from "../state";
-import { rollRandomSpell, Spell, spells } from "../data/spells.ts";
+import { Spell } from "../data/spells.ts";
 import SpellRender from "./SpellRender.tsx";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const GoalChooserDialog = () => {
-  const { choosing, setChoosing, setActiveSpell, boards, openShopping } =
-    useGameStore();
+  const { choosing, setChoosing, openShopping } = useGameStore();
   // TODO: make this not fixed to 0.
-  const activeSpell = boards[0]?.availableSpells[boards[0]?.activeSpell];
+  // const activeSpell = boards[0]?.availableSpells[boards[0]?.activeSpell];
 
   const [isTransparent, setIsTransparent] = useState(false);
-  const [choiceOfThree, setChoiceOfThree] = useState<Spell[]>([]);
+  const [choiceOfThree] = useState<Spell[]>([]);
 
-  const spellChoiceHandler = (chosenSpell: Spell) => {
+  const spellChoiceHandler = () => {
     setChoosing(); // toggle off the dialog
-    setActiveSpell(chosenSpell, 0);
+    // setActiveSpell(chosenSpell, 0);
     openShopping();
   };
 
-  useEffect(() => {
-    const choices: Spell[] = [];
-    while (choices.length < Math.min(3, spells.length)) {
-      const potentialNewSpell = rollRandomSpell();
-      if (
-        !choices.find((s) => s.name === potentialNewSpell.name) &&
-        potentialNewSpell.name !== activeSpell?.spell.name
-      ) {
-        choices.push(potentialNewSpell);
-      }
-    }
-    setChoiceOfThree(choices);
-  }, [activeSpell?.spell.name, choosing]);
+  // useEffect(() => {
+  //   const choices: Spell[] = [];
+  //   // while (choices.length < Math.min(3, spells.length)) {
+  //   //   const potentialNewSpell = rollRandomSpell();
+  //   //   if (
+  //   //     !choices.find((s) => s.name === potentialNewSpell.name) &&
+  //   //     potentialNewSpell.name !== activeSpell?.spell.name
+  //   //   ) {
+  //   //     choices.push(potentialNewSpell);
+  //   //   }
+  //   // }
+  //   setChoiceOfThree(choices);
+  // }, [activeSpell?.spell.name, choosing]);
 
   return (
     <>
@@ -48,7 +47,7 @@ const GoalChooserDialog = () => {
           <div
             key={spell.name}
             className="border-gray-900 border-2 cursor-pointer bg-gray-300 rounded"
-            onClick={() => spellChoiceHandler(spell)}
+            onClick={() => spellChoiceHandler()}
           >
             <SpellRender
               spellData={{

@@ -42,14 +42,13 @@ const SpellRender = ({
   return (
     <div>
       <div>
-        {spellData.spell.name}
-        <div className="flex">
+        <div className="flex space-x-1 p-2">
+          <div>{spellData.spell.name}</div>
           {spellData.spell.requiredTiles.map((rt, rtIx) => {
             return tileRender(rt, rtIx);
           })}
         </div>
       </div>
-      Complete the pattern in one line: x2 score multiplier
     </div>
   );
 };

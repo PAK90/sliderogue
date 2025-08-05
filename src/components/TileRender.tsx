@@ -2,13 +2,18 @@ import { Tile, useGameStore } from "../state";
 import { tileColourMap, upgradeColourMap } from "../data/constants.ts";
 
 const TileRender = ({ tile }: { tile: Tile }) => {
-  const { boards, upgrading, setSelectedTiles } = useGameStore();
-  const { availableSpells, selectedTiles } = boards[0];
+  const { boards, upgrading, setSelectedTiles, player } = useGameStore();
+  const { selectedTiles } = boards[0];
 
-  // hack considering there's only one active spell for now
-  // TODO: make this work for N active spells
-  const activeSpell = availableSpells[0];
-  const spellNeedsThisTile = activeSpell.spell.requiredTiles.find((rt) => {
+  function union<T>(arrays: T[][]): T[] {
+    return [...new Set(arrays.flat())];
+  }
+
+  const activeSpells = player.chosenSpells;
+  const combinedRequiredTilePool = union(
+    activeSpells.map((as) => as.spell.requiredTiles),
+  );
+  const spellNeedsThisTile = combinedRequiredTilePool.find((rt) => {
     if (rt.tileValue === tile.value && rt.tileName === tile.name) {
       return true;
     }

@@ -5,7 +5,7 @@ import { immer } from "zustand/middleware/immer";
 // import { defaultTiles } from "../tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
 // import { elemental4Tiles, elementalTiles } from "../data/tiles.ts";
-import { rollActiveSpellData, Spell } from "../data/spells.ts";
+import { rollActiveSpellData, Spell, spells } from "../data/spells.ts";
 import { Upgrade } from "../data/upgrades.ts";
 import { Item } from "../data/items.ts";
 import { chooseEmptyTilePosition } from "../helpers/chooseEmptyTilePosition.ts";
@@ -44,6 +44,8 @@ export type Tile = {
 export type Player = {
   maxHealth: number;
   currentHealth: number;
+  knownSpells: Spell[];
+  chosenSpells: { spell: Spell; complete: boolean[] }[];
 };
 
 export type BoardState = {
@@ -72,8 +74,8 @@ export type BoardState = {
 
   baseTilesToSpawn: Option[];
   newTilesToSpawn: Option[];
-  availableSpells: { spell: Spell; complete: boolean[] }[];
-  activeSpell: number;
+  // availableSpells: { spell: Spell; complete: boolean[] }[];
+  // activeSpell: number;
   draggedCells: Coordinate[];
 };
 
@@ -82,9 +84,12 @@ export type GameState = {
   boards: BoardState[];
   enemies: Enemy[];
   choosing: boolean;
+  chosenTargets: number[];
+  spellsToTarget: Spell[];
   shopping: boolean;
   upgrading: false | Upgrade;
   deckLooking: boolean;
+  targeting: boolean;
 };
 
 export type Actions = {
@@ -100,11 +105,14 @@ export type Actions = {
   applyUpgrade: (u: Upgrade | Item) => void;
   // setTilesToSpawn: (t: Option[]) => void;
   enspellTile: (t: Tile) => void;
-  setActiveSpell: (newSpell: Spell, boardIx: number) => void;
+  // setActiveSpell: (newSpells: Spell[], boardIx: number) => void;
   setDraggedPath: (c: Coordinate[], boardIndex: number) => void;
   useDraggedPath: (boardIndex: number) => void;
   setSelectedTiles: (t: Tile, bIx: number) => void;
   setSelectedDeckTiles: (t: number, bIx: number) => void;
+  toggleTargeting: () => void;
+  submitTargetsToSpell: () => void;
+  setChosenTargets: (t: number) => void;
 };
 
 export const useGameStore = create<GameState & Actions>()(
@@ -113,9 +121,17 @@ export const useGameStore = create<GameState & Actions>()(
     shopping: false,
     upgrading: false,
     deckLooking: false,
+    targeting: false,
     boards: [],
+    chosenTargets: [],
+    spellsToTarget: [],
     enemies: [GolbinEnemy, { ...GolbinEnemy, position: 1 }],
-    player: { maxHealth: 50, currentHealth: 50 },
+    player: {
+      maxHealth: 50,
+      currentHealth: 50,
+      chosenSpells: spells.map((s) => ({ spell: s, complete: [] })),
+      knownSpells: spells,
+    },
     imminentAnnihilations: [],
 
     setSelectedTiles: (t: Tile, bIx: number) =>
@@ -179,14 +195,15 @@ export const useGameStore = create<GameState & Actions>()(
           }
         });
         // see if the active spell's requirements have been met by the dragged tiles.
-        const activeSpell = boardState.availableSpells[boardState.activeSpell];
-        const satisfiesActiveSpell = activeSpell.spell.requiredTiles.every(
-          (reqTile) =>
+        const activeSpells = state.player.chosenSpells;
+        const satisfiedActiveSpells: boolean[] = activeSpells.map((as) => {
+          return as.spell.requiredTiles.every((reqTile) =>
             draggedTiles.find(
               (dt) =>
                 dt.name === reqTile.tileName && dt.value === reqTile.tileValue,
             ),
-        );
+          );
+        });
 
         // const percentPerTileLength = 100;
         const baseManaCostPerTile = 10;
@@ -270,10 +287,25 @@ export const useGameStore = create<GameState & Actions>()(
         //   ((draggedTiles.length * percentPerTileLength) / 100) *
         //   (satisfiesActiveSpell ? 2 : 1);
         // calculate the score using the state-provided numbers, since we can
-        boardState.score +=
-          boardState.multiplier *
-          boardState.basePoints *
-          (satisfiesActiveSpell ? 2 : 1);
+        boardState.score += boardState.multiplier * boardState.basePoints; /* *
+          (satisfiesActiveSpell ? 2 : 1);*/
+
+        // TODO: if spell targets just ENEMIES, do some targeting first.
+        // TODO: do the spell effect properly after targeting
+        satisfiedActiveSpells.forEach((sat, satIx) => {
+          if (sat) {
+            if (activeSpells[satIx].spell.targets === "ENEMY") {
+              // TODO: targeting!
+              state.targeting = true;
+              state.spellsToTarget = state.spellsToTarget.concat(
+                activeSpells[satIx].spell,
+              );
+            } else {
+              state = activeSpells[satIx].spell.stateUpdater([0], state);
+            }
+          }
+        });
+        console.log("activated spell state updaed", state.spellsToTarget);
 
         const targetIncrease = 1.5;
         // state.boards[boardIndex].spellsCompleted += 1;
@@ -302,6 +334,34 @@ export const useGameStore = create<GameState & Actions>()(
         boardState.draggedCells = [];
         boardState.multiplier = 0;
         boardState.basePoints = 0;
+      }),
+
+    submitTargetsToSpell: () =>
+      set((state) => {
+        // take the first spell with targets on the 'stack' and resolve it
+        // it should always be the 0th since we concat them on, and will slice this one off after.
+        const targets = state.chosenTargets;
+        const spellToResolve = state.spellsToTarget[0];
+        state = spellToResolve.stateUpdater(targets, state);
+        state.spellsToTarget.splice(0, 1);
+        state.chosenTargets = []; // reset the targeting.
+        if (state.spellsToTarget.length === 0) {
+          state.targeting = false;
+        }
+      }),
+
+    setChosenTargets: (target: number) =>
+      // TODO: cap the number of chosen to the spell's target number cap
+      set((state) => {
+        const existingTargetIx = state.chosenTargets.findIndex(
+          (t) => t === target,
+        );
+        if (existingTargetIx !== -1) {
+          state.chosenTargets.splice(existingTargetIx, 1);
+        } else {
+          state.chosenTargets = state.chosenTargets.concat(target);
+        }
+        console.log("targets: ", state.chosenTargets);
       }),
 
     setDraggedPath: (c: Coordinate[], boardIndex: number) =>
@@ -342,34 +402,33 @@ export const useGameStore = create<GameState & Actions>()(
         state.choosing = !state.choosing;
       }),
 
-    setActiveSpell: (newSpell: Spell, boardIx: number) =>
-      set((state) => {
-        const boardState = state.boards[boardIx];
-        boardState.availableSpells[0] = {
-          spell: newSpell,
-          complete: newSpell.requiredTiles.map(() => false),
-        };
-        boardState.newTilesToSpawn = newSpell.spawns;
-        // FIXME; for now it's just me wanting each spell to have only their own colours come in.
-        boardState.baseTilesToSpawn = newSpell.spawns;
-
-        // prototype; make deck tiles equal to spawns on the spell, plus the temporary deck.
-        const deckFromSpawns = newSpell.spawns
-          .map((st) => Array.from({ length: 20 }, () => ({ ...st })))
-          .flat();
-        boardState.upgradedDeck = boardState.upgradedDeck.concat(
-          boardState.temporaryDeck,
-        );
-        boardState.usableDeck = shuffleArray(
-          deckFromSpawns.concat(boardState.upgradedDeck),
-        );
-        boardState.temporaryDeck = [];
-      }),
+    // setActiveSpell: (newSpell: Spell, boardIx: number) =>
+    //   set((state) => {
+    //     const boardState = state.boards[boardIx];
+    //     boardState.availableSpells[0] = {
+    //       spell: newSpell,
+    //       complete: newSpell.requiredTiles.map(() => false),
+    //     };
+    //     boardState.newTilesToSpawn = newSpell.spawns;
+    //     // FIXME; for now it's just me wanting each spell to have only their own colours come in.
+    //     boardState.baseTilesToSpawn = newSpell.spawns;
+    //
+    //     // prototype; make deck tiles equal to spawns on the spell, plus the temporary deck.
+    //     const deckFromSpawns = newSpell.spawns
+    //       .map((st) => Array.from({ length: 20 }, () => ({ ...st })))
+    //       .flat();
+    //     boardState.upgradedDeck = boardState.upgradedDeck.concat(
+    //       boardState.temporaryDeck,
+    //     );
+    //     boardState.usableDeck = shuffleArray(
+    //       deckFromSpawns.concat(boardState.upgradedDeck),
+    //     );
+    //     boardState.temporaryDeck = [];
+    //   }),
 
     enspellTile: (tile: Tile) =>
       set((state) => {
-        const activeSpell =
-          state.boards[0].availableSpells[state.boards[0].activeSpell];
+        const activeSpell = state.player.chosenSpells[0];
 
         const slotToFillIx = activeSpell.spell.requiredTiles.findIndex(
           (rt, rtIx) => {
@@ -391,7 +450,6 @@ export const useGameStore = create<GameState & Actions>()(
           // const newSpell = rollActiveSpellData();
           // state.boards[0].availableSpells = [newSpell];
           // state.boards[0].newTilesToSpawn = newSpell.spell.spawns;
-          // TODO: do the spell effect
           state.choosing = true;
         }
 
@@ -633,25 +691,26 @@ export const useGameStore = create<GameState & Actions>()(
             state.boards[boardIndex].usableDeck.splice(0, 1);
           }
           // check which parts of the required spell are complete, and mark that in the spell
-          const activeSpell =
-            boardState.availableSpells[boardState.activeSpell];
-          const newCompletedArray: boolean[] = Array.from(
-            {
-              length: activeSpell.complete.length,
-            },
-            () => false,
-          );
-          for (let i = 0; i < boardState.tiles.length; i++) {
-            const tile = boardState.tiles[i];
-            activeSpell.spell.requiredTiles.forEach((rt, rtIx) => {
-              if (!newCompletedArray[rtIx]) {
-                if (rt.tileValue === tile.value && rt.tileName === tile.name) {
-                  newCompletedArray[rtIx] = true;
-                }
-              }
-            });
-          }
-          activeSpell.complete = newCompletedArray;
+          // FIXME: do this for each of the player state's chosenSpells.
+          // const activeSpell =
+          //   boardState.availableSpells[boardState.activeSpell];
+          // const newCompletedArray: boolean[] = Array.from(
+          //   {
+          //     length: activeSpell.complete.length,
+          //   },
+          //   () => false,
+          // );
+          // for (let i = 0; i < boardState.tiles.length; i++) {
+          //   const tile = boardState.tiles[i];
+          //   activeSpell.spell.requiredTiles.forEach((rt, rtIx) => {
+          //     if (!newCompletedArray[rtIx]) {
+          //       if (rt.tileValue === tile.value && rt.tileName === tile.name) {
+          //         newCompletedArray[rtIx] = true;
+          //       }
+          //     }
+          //   });
+          // }
+          // activeSpell.complete = newCompletedArray;
         }
 
         // check for which tiles are in position to be elementally annihilated.
@@ -661,17 +720,25 @@ export const useGameStore = create<GameState & Actions>()(
         // console.log(state.boards[boardIndex].imminentAnnihilations);
       }),
 
+    toggleTargeting: () =>
+      set((state) => {
+        state.targeting = !state.targeting;
+      }),
+
     resetGame: () => {
       set((state) => {
         const newSpell = rollActiveSpellData();
+        const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
+          return [...mergedSpawns, ...spell.spawns];
+        }, []);
         // const myBoard = initBoard(4, 4, newSpell, defaultDeck);
         const myBoard = initBoard(
           4,
           4,
-          newSpell.spell.spawns,
-          // newSpell.spell.spawns,
-          newSpell,
-          newSpell.spell.spawns
+          allSpawns,
+          // allSpawns,
+          newSpell, // TODO: remove this just one spell here
+          allSpawns
             .map((st) =>
               Array.from({ length: 20 }, () => ({
                 ...st,
@@ -681,7 +748,12 @@ export const useGameStore = create<GameState & Actions>()(
         );
         state.boards = [myBoard];
         state.choosing = false;
-        state.player = { maxHealth: 50, currentHealth: 50 };
+        state.player = {
+          maxHealth: 50,
+          currentHealth: 50,
+          knownSpells: spells,
+          chosenSpells: spells.map((s) => ({ spell: s, complete: [] })),
+        };
         state.enemies = [GolbinEnemy, { ...GolbinEnemy, position: 1 }];
       });
     },
@@ -755,9 +827,9 @@ const initBoard = (
     multiplier: 0,
     baseTilesToSpawn: tilesToStart,
     newTilesToSpawn: newSpell.spell.spawns,
-    availableSpells: [],
+    // availableSpells: [],
     numberOfSlides: 0,
-    activeSpell: 0,
+    // activeSpell: 0,
     draggedCells: [],
     usedUpgrades: [],
     ownedItems: [],
@@ -814,7 +886,7 @@ const initBoard = (
   newBoardState.usableDeck = shuffledDeck;
   /// DECK STUFF ENDS HERE
 
-  newBoardState.availableSpells.push(newSpell);
+  // newBoardState.availableSpells.push(newSpell);
   return newBoardState;
 };
 

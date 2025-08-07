@@ -184,7 +184,7 @@ const fireballSpell: Spell = {
   targetQuantity: 2,
   stateUpdater: (targets, state: WritableDraft<GameState & Actions>) => {
     targets.forEach((target) => {
-      state.enemies[target].currentHealth -= 5;
+      state.waves[state.activeWave][target].currentHealth -= 5;
     });
     return state;
   },

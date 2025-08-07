@@ -82,7 +82,9 @@ export type BoardState = {
 export type GameState = {
   player: Player;
   boards: BoardState[];
-  enemies: Enemy[];
+  activeWave: number;
+  waves: Enemy[][];
+  defeatedEnemies: Enemy[];
   choosing: boolean;
   chosenTargets: number[];
   spellsToTarget: Spell[];
@@ -113,6 +115,7 @@ export type Actions = {
   toggleTargeting: () => void;
   submitTargetsToSpell: () => void;
   setChosenTargets: (t: number) => void;
+  defeatEnemy: (e: Enemy) => void;
 };
 
 export const useGameStore = create<GameState & Actions>()(
@@ -125,10 +128,15 @@ export const useGameStore = create<GameState & Actions>()(
     boards: [],
     chosenTargets: [],
     spellsToTarget: [],
-    enemies: [GolbinEnemy, { ...GolbinEnemy, position: 1 }],
+    activeWave: 0,
+    waves: [
+      [GolbinEnemy, GolbinEnemy],
+      [GolbinEnemy, GolbinEnemy, GolbinEnemy],
+    ],
+    defeatedEnemies: [],
     player: {
       maxHealth: 50,
-      currentHealth: 50,
+      currentHealth: 150,
       chosenSpells: spells.map((s) => ({ spell: s, complete: [] })),
       knownSpells: spells,
     },
@@ -179,6 +187,49 @@ export const useGameStore = create<GameState & Actions>()(
       set((state) => {
         state.deckLooking = !state.deckLooking;
       }),
+
+    defeatEnemy: (enemy: Enemy) => {
+      set((state) => {
+        // remove the enemy from active state.enemies array
+        // add it to the state.defeatedEnemies array for loot purposes once the round ends.
+        const boardState = state.boards[0];
+        const enemies = state.waves[state.activeWave];
+        const enemyIx = enemies.findIndex((e) => e.id === enemy.id);
+        if (enemyIx !== -1) {
+          enemies.splice(enemyIx, 1);
+          state.defeatedEnemies = state.defeatedEnemies.concat(enemy);
+        } else {
+          console.warn("No enemy found when trying to remove;", enemy, enemies);
+        }
+        if (enemies.length === 0) {
+          window.alert("yay you defeated all the enemies!");
+          // TODO: move on to next round, first drop loot though, and let player buy upgrades.
+          state.activeWave++;
+          if (state.activeWave > state.waves.length - 1) {
+            window.alert("w00t you beat the game!");
+          }
+
+          // make any tiles used for spells be added to the base deck for the next round
+          const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
+            return [...mergedSpawns, ...spell.spawns];
+          }, []);
+          const deckFromSpawns = allSpawns
+            .map((st) => Array.from({ length: 20 }, () => ({ ...st })))
+            .flat();
+          boardState.upgradedDeck = boardState.upgradedDeck.concat(
+            boardState.temporaryDeck,
+          );
+          boardState.usableDeck = shuffleArray(
+            deckFromSpawns.concat(boardState.upgradedDeck),
+          );
+          boardState.temporaryDeck = [];
+
+          // clear board, start new round!
+          boardState.tiles = [];
+          boardState.mana = 0;
+        }
+      });
+    },
 
     useDraggedPath: (boardIndex: number) =>
       set((state) => {
@@ -290,8 +341,7 @@ export const useGameStore = create<GameState & Actions>()(
         boardState.score += boardState.multiplier * boardState.basePoints; /* *
           (satisfiesActiveSpell ? 2 : 1);*/
 
-        // TODO: if spell targets just ENEMIES, do some targeting first.
-        // TODO: do the spell effect properly after targeting
+        // do spell effects
         satisfiedActiveSpells.forEach((sat, satIx) => {
           if (sat) {
             if (activeSpells[satIx].spell.targets === "ENEMY") {
@@ -649,7 +699,8 @@ export const useGameStore = create<GameState & Actions>()(
           boardState.numberOfSlides++;
 
           // for each enemy, check if their abilities should activate
-          state.enemies.forEach((enemy) => {
+          const enemies = state.waves[state.activeWave];
+          enemies.forEach((enemy) => {
             enemy.abilities.forEach((ability) => {
               if (boardState.numberOfSlides % ability.slidesToActivate === 0) {
                 state = ability.stateUpdater(state);
@@ -750,11 +801,15 @@ export const useGameStore = create<GameState & Actions>()(
         state.choosing = false;
         state.player = {
           maxHealth: 50,
-          currentHealth: 50,
+          currentHealth: 150,
           knownSpells: spells,
           chosenSpells: spells.map((s) => ({ spell: s, complete: [] })),
         };
-        state.enemies = [GolbinEnemy, { ...GolbinEnemy, position: 1 }];
+        state.waves = [
+          [GolbinEnemy, GolbinEnemy],
+          [GolbinEnemy, GolbinEnemy, GolbinEnemy],
+        ];
+        state.activeWave = 0;
       });
     },
   })),

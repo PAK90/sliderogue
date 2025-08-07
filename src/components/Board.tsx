@@ -234,8 +234,9 @@ const Board = ({
       </div>
       {!upgrading && (
         <button
+          disabled={mana < manaUsed}
           onClick={() => useDraggedPath(boardIndex)}
-          className="font-bold text-xl p-1 rounded border-gray-900 border-4"
+          className={`font-bold text-xl p-1 rounded ${mana < manaUsed ? "border-gray-400 text-gray-400" : "border-gray-900"} border-4`}
         >
           Cast Selected Spells
         </button>

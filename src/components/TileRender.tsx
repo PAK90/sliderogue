@@ -5,7 +5,7 @@ const TileRender = ({
 }: {
   tile: {
     name: string;
-    value: number;
+    value?: number;
   };
 }) => {
   const value = tile.value || 2;

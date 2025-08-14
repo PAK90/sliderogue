@@ -135,7 +135,6 @@ const Board = ({
     }
   };
 
-  // @ts-ignore
   return (
     <div className="flex-col">
       {/*<div className="bg-green-200 w-fit m-1 p-0.5 rounded">*/}

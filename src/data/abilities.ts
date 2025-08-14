@@ -14,8 +14,8 @@ export const basicDealDamageAbility: Ability = {
   slidesToActivate: 5,
   target: "PLAYER",
   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
-    state.player.currentHealth -= 5;
+    state.player.currentHealth -= 3;
     return state;
   },
-  name: "I Whack You For 5!",
+  name: "I Whack You For 3!",
 };

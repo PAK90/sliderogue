@@ -44,32 +44,57 @@ const CombatBoard = () => {
   }, [player, resetGame]);
 
   const renderEntity = (entity: Player | Enemy, enemyIndex: number) => {
-    let ability: Ability | undefined;
+    const enemy = isEnemy(entity);
+    const ability: Ability | undefined =
+      enemy && entity.abilities.length ? entity.abilities[0] : undefined;
 
-    if (isEnemy(entity) && entity.abilities.length) {
-      ability = entity.abilities[0];
-    }
+    const ratio = Math.max(
+      0,
+      Math.min(1, entity.currentHealth / entity.maxHealth),
+    );
 
-    const health = `${entity.currentHealth}/${entity.maxHealth}`;
+    const baseBg = enemy ? "bg-red-100" : "bg-amber-50"; // light base
+    const fillBg = enemy ? "bg-red-400" : "bg-amber-300"; // darker fill
 
     return (
       <div
         onClick={() => addToTargets(enemyIndex)}
-        className={`${targeting && "hover:bg-amber-200 cursor-pointer"} ${chosenTargets.includes(enemyIndex) && "bg-amber-500"}`}
+        className={[
+          "relative overflow-hidden rounded flex flex-col",
+          baseBg,
+          targeting ? "cursor-pointer hover:ring-4 hover:ring-green-300" : "",
+          chosenTargets.includes(enemyIndex) ? "ring-4 ring-green-500" : "",
+        ].join(" ")}
+        style={{ width: 100 }}
       >
-        {/* name only if it exists, otherwise “Player” */}
-        {isEnemy(entity) ? entity.name : "Player"} {health}{" "}
-        {ability /* only show this part if we actually have an ability */ &&
-          `Activating ability "${ability.name}" in ${
-            ability.slidesToActivate -
-            (numberOfSlides % ability.slidesToActivate)
-          } slides`}
+        {/* Health fill (behind content) */}
+        <div
+          className={`absolute inset-x-0 bottom-0 ${fillBg} transition-[height] duration-300`}
+          style={{ height: `${ratio * 100}%` }}
+        />
+
+        {/* Content */}
+        <div className="relative p-2">
+          <p className="font-medium">
+            {enemy ? entity.name : "Player"} {entity.currentHealth}/
+            {entity.maxHealth}
+          </p>
+          <p className="text-wrap text-sm">
+            {ability &&
+              `Activating ability "${ability.name}" in ${
+                ability.slidesToActivate -
+                (numberOfSlides % ability.slidesToActivate)
+              } slides`}
+          </p>
+        </div>
       </div>
     );
   };
 
   return (
-    <div>{[player, ...enemies].map((e, eIx) => renderEntity(e, eIx - 1))}</div>
+    <div className="flex flex-row p-2 gap-2">
+      {[player, ...enemies].map((e, eIx) => renderEntity(e, eIx - 1))}
+    </div>
   );
 };
 

@@ -47,7 +47,7 @@ const GoalChooserDialog = () => {
         }}
         key={ix}
         className={`
-                  w-10 h-10 ${colourMap[t.id as keyof typeof colourMap]}
+                  w-10 h-10 ${colourMap[t.name as keyof typeof colourMap]}
                   rounded flex items-center justify-center
                   animate-growIn
                   ${upgrading && "cursor-pointer"}
@@ -64,7 +64,7 @@ const GoalChooserDialog = () => {
           style={{ position: "absolute", top: 4, left: 4 }}
           className="text-gray-700 font-bold text-xs"
         >
-          {t.id}
+          {t.name}
         </span>
       </div>
     );

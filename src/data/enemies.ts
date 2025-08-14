@@ -7,6 +7,7 @@ export type Enemy = {
   abilities: Ability[];
   name: string;
   id: number;
+  loot: any[]; // yes I know
 };
 
 export const GolbinEnemy = {
@@ -15,5 +16,13 @@ export const GolbinEnemy = {
   currentHealth: 15,
   abilities: [basicDealDamageAbility],
   name: "Golbin",
-  id: uniqueId(),
+  id: -1,
+  loot: [
+    { type: "GOLD", quantity: 3 },
+    { type: "TILE", quantity: 1 },
+  ],
 };
+
+export function createEnemy(enemy: Enemy) {
+  return { ...enemy, id: uniqueId() };
+}

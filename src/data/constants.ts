@@ -25,3 +25,6 @@ export const upgradeColourMap = {
   SILVER: "#e1e8f1",
   EXPLOSIVE: "#a80000",
 };
+
+export const BASE_MANA_COST = 5;
+export const BASE_MANA_MULTIPLIER = 1.1;

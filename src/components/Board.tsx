@@ -1,11 +1,16 @@
-import TileRender from "./TileRender.tsx";
+import BoardTileRender from "./BoardTileRender.tsx";
 import range from "../helpers/range.ts";
 import { BoardState, Coordinate, useGameStore } from "../state";
 import SpellRender from "./SpellRender.tsx";
 import { useCallback, useEffect, useState } from "react";
 import ConnectionRender from "./ConnectionRender.tsx";
-import { tileColourMap } from "../data/constants.ts";
+import {
+  BASE_MANA_COST,
+  BASE_MANA_MULTIPLIER,
+  tileColourMap,
+} from "../data/constants.ts";
 import CombatBoard from "./CombatBoard.tsx";
+import TileRender from "./TileRender.tsx";
 
 const Board = ({
   board,
@@ -21,12 +26,8 @@ const Board = ({
     draggedCells,
     mana,
     gold,
-    score,
     spellsCompleted,
-    targetScore,
     selectedTiles,
-    basePoints,
-    multiplier,
     ownedItems,
     usableDeck,
     lockedTileNames,
@@ -107,8 +108,8 @@ const Board = ({
     //     { tileScore: 0, length: 0 },
     //   ),
     // );
-    const baseManaCostPerTile = 10;
-    const manaIncreasePerTile = 1.1;
+    // const baseManaCostPerTile = 5;
+    // const manaIncreasePerTile = 1.1;
     setManaUsed(
       draggedCells.reduce((manaTotal, dTile, dTileIx) => {
         const draggedTile = tiles.find(
@@ -116,8 +117,8 @@ const Board = ({
         );
         return Math.floor(
           manaTotal +
-            baseManaCostPerTile *
-              manaIncreasePerTile ** dTileIx *
+            BASE_MANA_COST *
+              BASE_MANA_MULTIPLIER ** dTileIx *
               (draggedTile?.upgrades.includes("SILVER") ? 0.5 : 1),
         );
       }, 0),
@@ -134,13 +135,14 @@ const Board = ({
     }
   };
 
+  // @ts-ignore
   return (
     <div className="flex-col">
       {/*<div className="bg-green-200 w-fit m-1 p-0.5 rounded">*/}
       {/*  {`Patterns completed (/record): ${spellsCompleted}/${spellsCompletedRecord}`}*/}
       {/*</div>*/}
       <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${gold}`}</div>
-      <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}/${targetScore}`}</div>
+      {/*<div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}/${targetScore}`}</div>*/}
       {/*<div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Lines left: ${lines}`}</div>*/}
       <div
         onClick={toggleDeckView}
@@ -167,8 +169,13 @@ const Board = ({
             >{`${lockedTileNames.includes(tileName) ? "Unlock" : "Lock  "} ${tileName}`}</button>
           ))}
       </div>
-      <div>{`${basePoints} x ${multiplier} = ${basePoints * multiplier}`}</div>
-
+      {/*<div>{`${basePoints} x ${multiplier} = ${basePoints * multiplier}`}</div>*/}
+      {usableDeck.length > 0 && (
+        <div className="flex flex-row">
+          {"Next Tile:"}
+          <TileRender tile={usableDeck[0]} />
+        </div>
+      )}
       {upgrading && (
         <>
           <button
@@ -207,7 +214,7 @@ const Board = ({
         </div>
         {/*<div className="position-absolute">*/}
         {tiles.map((tile) => (
-          <TileRender tile={tile} key={tile.id} />
+          <BoardTileRender tile={tile} key={tile.id} />
         ))}
         {range(boardHeight).map((_, rIx) => {
           return (

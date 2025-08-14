@@ -2,7 +2,7 @@ import { TileType, TileUpgrades } from "../state";
 
 export type Option = {
   weight: number;
-  id: string;
+  name: string;
   type: TileType;
   fromLine: boolean;
   value?: number;

@@ -11,7 +11,8 @@ import { Item } from "../data/items.ts";
 import { chooseEmptyTilePosition } from "../helpers/chooseEmptyTilePosition.ts";
 import { uniqueId } from "../helpers/uniqueId.ts";
 import shuffleArray from "../helpers/shuffleArray.ts";
-import { Enemy, GolbinEnemy } from "../data/enemies.ts";
+import { createEnemy, Enemy, GolbinEnemy } from "../data/enemies.ts";
+import { BASE_MANA_COST, BASE_MANA_MULTIPLIER } from "../data/constants.ts";
 // import range from "../helpers/range.ts";
 
 export type Direction = "up" | "down" | "left" | "right";
@@ -130,13 +131,17 @@ export const useGameStore = create<GameState & Actions>()(
     spellsToTarget: [],
     activeWave: 0,
     waves: [
-      [GolbinEnemy, GolbinEnemy],
-      [GolbinEnemy, GolbinEnemy, GolbinEnemy],
+      [createEnemy(GolbinEnemy), createEnemy(GolbinEnemy)],
+      [
+        createEnemy(GolbinEnemy),
+        createEnemy(GolbinEnemy),
+        createEnemy(GolbinEnemy),
+      ],
     ],
     defeatedEnemies: [],
     player: {
       maxHealth: 50,
-      currentHealth: 150,
+      currentHealth: 50,
       chosenSpells: spells.map((s) => ({ spell: s, complete: [] })),
       knownSpells: spells,
     },
@@ -214,7 +219,7 @@ export const useGameStore = create<GameState & Actions>()(
             return [...mergedSpawns, ...spell.spawns];
           }, []);
           const deckFromSpawns = allSpawns
-            .map((st) => Array.from({ length: 20 }, () => ({ ...st })))
+            .map((st) => Array.from({ length: 25 }, () => ({ ...st })))
             .flat();
           boardState.upgradedDeck = boardState.upgradedDeck.concat(
             boardState.temporaryDeck,
@@ -257,8 +262,8 @@ export const useGameStore = create<GameState & Actions>()(
         });
 
         // const percentPerTileLength = 100;
-        const baseManaCostPerTile = 10;
-        const manaIncreasePerTile = 1.1;
+        // const baseManaCostPerTile = 10;
+        // const manaIncreasePerTile = 1.1;
 
         // first, reduce mana by the length of the dragged *cells*, not the tiles.
         boardState.mana -= boardState.draggedCells.reduce(
@@ -268,8 +273,8 @@ export const useGameStore = create<GameState & Actions>()(
             );
             return Math.floor(
               manaTotal +
-                baseManaCostPerTile *
-                  manaIncreasePerTile ** dTileIx *
+                BASE_MANA_COST *
+                  BASE_MANA_MULTIPLIER ** dTileIx *
                   (draggedTile?.upgrades.includes("SILVER") ? 0.5 : 1),
             );
           },
@@ -289,7 +294,7 @@ export const useGameStore = create<GameState & Actions>()(
                   type: draggedTile.type,
                   value: draggedTile.value,
                   fromLine: true,
-                  id: draggedTile.name,
+                  name: draggedTile.name,
                   upgrades: draggedTile.upgrades,
                 },
               );
@@ -465,7 +470,7 @@ export const useGameStore = create<GameState & Actions>()(
     //
     //     // prototype; make deck tiles equal to spawns on the spell, plus the temporary deck.
     //     const deckFromSpawns = newSpell.spawns
-    //       .map((st) => Array.from({ length: 20 }, () => ({ ...st })))
+    //       .map((st) => Array.from({ length: 25 }, () => ({ ...st })))
     //       .flat();
     //     boardState.upgradedDeck = boardState.upgradedDeck.concat(
     //       boardState.temporaryDeck,
@@ -726,7 +731,7 @@ export const useGameStore = create<GameState & Actions>()(
               // ),
               {
                 id: uniqueId(),
-                name: newPickedOption.id.toString(),
+                name: newPickedOption.name.toString(),
                 value: newPickedOption.value || 2,
                 position: chooseEmptyTilePosition(
                   state.boards[boardIndex].boardWidth,
@@ -791,7 +796,7 @@ export const useGameStore = create<GameState & Actions>()(
           newSpell, // TODO: remove this just one spell here
           allSpawns
             .map((st) =>
-              Array.from({ length: 20 }, () => ({
+              Array.from({ length: 25 }, () => ({
                 ...st,
               })),
             )
@@ -801,13 +806,17 @@ export const useGameStore = create<GameState & Actions>()(
         state.choosing = false;
         state.player = {
           maxHealth: 50,
-          currentHealth: 150,
+          currentHealth: 50,
           knownSpells: spells,
           chosenSpells: spells.map((s) => ({ spell: s, complete: [] })),
         };
         state.waves = [
-          [GolbinEnemy, GolbinEnemy],
-          [GolbinEnemy, GolbinEnemy, GolbinEnemy],
+          [createEnemy(GolbinEnemy), createEnemy(GolbinEnemy)],
+          [
+            createEnemy(GolbinEnemy),
+            createEnemy(GolbinEnemy),
+            createEnemy(GolbinEnemy),
+          ],
         ];
         state.activeWave = 0;
       });
@@ -929,7 +938,7 @@ const initBoard = (
 
   newBoardState.tiles = startingSpots.map((ss, ssIx) => ({
     id: uniqueId(),
-    name: shuffledDeck[ssIx].id.toString(),
+    name: shuffledDeck[ssIx].name.toString(),
     value: shuffledDeck[ssIx].value || 2,
     position: ss.position,
     fromLine: false,

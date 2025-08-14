@@ -11,7 +11,7 @@ const SpellRender = ({
       <div>
         <div className="flex space-x-1 p-2">
           <div>{`${spellData.spell.name} (${spellData.spell.description})`}</div>
-          {spellData.spell.requiredTiles.map((rt, rtIx) => (
+          {spellData.spell.requiredTiles.map((rt) => (
             <TileRender tile={{ name: rt.tileName, value: rt.tileValue }} />
           ))}
         </div>

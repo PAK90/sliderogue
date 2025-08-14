@@ -31,7 +31,7 @@ export const addRandomTile = (
 
   return {
     id: uniqueId(),
-    name: chosenTile.id.toString(),
+    name: chosenTile.name.toString(),
     value: chosenTile.value || 2,
     position: potentialNewCellPos,
     type: chosenTile.type,

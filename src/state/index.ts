@@ -212,6 +212,22 @@ export const useGameStore = create<GameState & Actions>()(
           state.activeWave++;
           if (state.activeWave > state.waves.length - 1) {
             window.alert("w00t you beat the game!");
+          } else {
+            // drop some tasty loot
+            // FIXME; this currently goes over EVERY enemy, not just the ones this wave.
+            state.defeatedEnemies.forEach((defeatedEnemy) => {
+              // TODO; genericise this
+              boardState.gold += defeatedEnemy.loot.reduce(
+                (totalGold, loot) => {
+                  if (loot.type === "GOLD") {
+                    totalGold += loot.quantity;
+                  }
+                  return totalGold;
+                },
+                0,
+              );
+            });
+            state.shopping = true;
           }
 
           // make any tiles used for spells be added to the base deck for the next round

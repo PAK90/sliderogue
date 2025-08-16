@@ -11,6 +11,7 @@ import {
 } from "../data/constants.ts";
 import CombatBoard from "./CombatBoard.tsx";
 import TileRender from "./TileRender.tsx";
+import AnnihilationBorder from "./AnnihilationBorder.tsx";
 
 const Board = ({
   board,
@@ -31,6 +32,7 @@ const Board = ({
     ownedItems,
     usableDeck,
     lockedTileNames,
+    imminentAnnihilations,
   } = board;
   const {
     setDraggedPath,
@@ -209,6 +211,10 @@ const Board = ({
             viewBox={`0 0 ${boardWidth * tileSize} ${boardHeight * tileSize}`}
           >
             <ConnectionRender connectionLine={draggedCells} />
+
+            {imminentAnnihilations.map((a) => (
+              <AnnihilationBorder annihilation={a} />
+            ))}
           </svg>
         </div>
         {/*<div className="position-absolute">*/}

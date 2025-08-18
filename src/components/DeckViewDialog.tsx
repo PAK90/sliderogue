@@ -6,15 +6,18 @@ const GoalChooserDialog = () => {
     deckLooking,
     toggleDeckView,
     boards,
+    player,
     upgrading,
     applyUpgrade,
     endUpgrading,
     setSelectedDeckTiles,
   } = useGameStore();
   // TODO: make this not fixed to 0.
-  const deck = boards[0]?.usableDeck;
+  // FIXME: maybe change this to the player's base tile bag/deck? for now it's ok since we copy that to this
+  // const deck = boards[0]?.usableDeck;
+  const deck = player.baseTileBag;
   const selectedDeckTiles = boards[0]?.selectedDeckTiles;
-  const upgradedDeck = boards[0]?.upgradedDeck;
+  // const upgradedDeck = boards[0]?.upgradedDeck;
   if (!deck) return;
 
   const colourMap = {
@@ -70,7 +73,7 @@ const GoalChooserDialog = () => {
     );
   };
 
-  const deckToUse = upgrading ? upgradedDeck : deck;
+  // const deckToUse = upgrading ? upgradedDeck : deck;
 
   return (
     <>
@@ -99,7 +102,7 @@ const GoalChooserDialog = () => {
           </>
         )}
         <div className="flex flex-wrap">
-          {deckToUse.map((rt, rtIx) => {
+          {deck.map((rt, rtIx) => {
             return tileRender(rt, rtIx);
           })}
         </div>

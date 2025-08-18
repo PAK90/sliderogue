@@ -5,7 +5,7 @@ import { immer } from "zustand/middleware/immer";
 // import { defaultTiles } from "../tiles.ts";
 import { Option } from "../helpers/chooseWeightedOption.ts";
 // import { elemental4Tiles, elementalTiles } from "../data/tiles.ts";
-import { rollActiveSpellData, Spell, spells } from "../data/spells.ts";
+import { Spell, spells } from "../data/spells.ts";
 import { Upgrade } from "../data/upgrades.ts";
 import { Item } from "../data/items.ts";
 import { chooseEmptyTilePosition } from "../helpers/chooseEmptyTilePosition.ts";
@@ -13,6 +13,7 @@ import { uniqueId } from "../helpers/uniqueId.ts";
 import shuffleArray from "../helpers/shuffleArray.ts";
 import { createEnemy, Enemy, GolbinEnemy } from "../data/enemies.ts";
 import { BASE_MANA_COST, BASE_MANA_MULTIPLIER } from "../data/constants.ts";
+import range from "../helpers/range.ts";
 // import range from "../helpers/range.ts";
 
 export type Direction = "up" | "down" | "left" | "right";
@@ -47,6 +48,7 @@ export type Player = {
   currentHealth: number;
   knownSpells: Spell[];
   chosenSpells: { spell: Spell; complete: boolean[] }[];
+  baseTileBag: Option[];
 };
 
 export type BoardState = {
@@ -73,8 +75,8 @@ export type BoardState = {
   upgradedDeck: Option[];
   temporaryDeck: Option[];
 
-  baseTilesToSpawn: Option[];
-  newTilesToSpawn: Option[];
+  // baseTilesToSpawn: Option[];
+  // newTilesToSpawn: Option[];
   // availableSpells: { spell: Spell; complete: boolean[] }[];
   // activeSpell: number;
   draggedCells: Coordinate[];
@@ -143,8 +145,11 @@ export const useGameStore = create<GameState & Actions>()(
     player: {
       maxHealth: 50,
       currentHealth: 50,
+      // TODO; move this to a choosing UI that presents all of the starter spells
+      // TODO: for now we prechoose two from the spells file.
       chosenSpells: spells.map((s) => ({ spell: s, complete: [] })),
       knownSpells: spells,
+      baseTileBag: [], // to be filled in once the player chooses spells
     },
     imminentAnnihilations: [],
 
@@ -199,6 +204,7 @@ export const useGameStore = create<GameState & Actions>()(
         // remove the enemy from active state.enemies array
         // add it to the state.defeatedEnemies array for loot purposes once the round ends.
         const boardState = state.boards[0];
+        const { player } = state;
         const enemies = state.waves[state.activeWave];
         const enemyIx = enemies.findIndex((e) => e.id === enemy.id);
         if (enemyIx !== -1) {
@@ -211,6 +217,10 @@ export const useGameStore = create<GameState & Actions>()(
           window.alert("yay you defeated all the enemies!");
           // TODO: move on to next round, first drop loot though, and let player buy upgrades.
           state.activeWave++;
+
+          // reset slide counter!
+          boardState.numberOfSlides = 0;
+          console.log("board state for deck inspection: ", boardState);
           if (state.activeWave > state.waves.length - 1) {
             window.alert("w00t you beat the game!");
           } else {
@@ -232,19 +242,17 @@ export const useGameStore = create<GameState & Actions>()(
           }
 
           // make any tiles used for spells be added to the base deck for the next round
-          const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
-            return [...mergedSpawns, ...spell.spawns];
-          }, []);
-          const deckFromSpawns = allSpawns
-            .map((st) => Array.from({ length: 25 }, () => ({ ...st })))
-            .flat();
-          boardState.upgradedDeck = boardState.upgradedDeck.concat(
-            boardState.temporaryDeck,
-          );
-          boardState.usableDeck = shuffleArray(
-            deckFromSpawns.concat(boardState.upgradedDeck),
-          );
-          boardState.temporaryDeck = [];
+          // const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
+          //   return [...mergedSpawns, ...spell.spawns];
+          // }, []);
+          // const deckFromSpawns = allSpawns
+          //   .map((st) => Array.from({ length: 25 }, () => ({ ...st })))
+          //   .flat();
+          // boardState.upgradedDeck = boardState.upgradedDeck.concat(
+          //   boardState.temporaryDeck,
+          // );
+          boardState.usableDeck = shuffleArray(player.baseTileBag);
+          // boardState.temporaryDeck = [];
 
           // clear board, start new round!
           boardState.tiles = [];
@@ -584,7 +592,7 @@ export const useGameStore = create<GameState & Actions>()(
         let moved = false;
         const boardState = state.boards[boardIndex];
         if (boardState.tiles.length === 0) {
-          // set moved to true to pretend we have tiles, so it adds another one.
+          // empty board; set moved to true to pretend we have tiles, so it adds another one.
           moved = true;
         }
         // build traversals
@@ -739,37 +747,45 @@ export const useGameStore = create<GameState & Actions>()(
           });
 
           // add a random tile if any are left.
-          if (state.boards[boardIndex].usableDeck.length > 0) {
-            const newPickedOption = state.boards[boardIndex].usableDeck[0];
-
-            // console.log("picked tile has fromLine: ", newPickedOption.fromLine);
-            boardState.tiles.push(
-              // addRandomTile(
-              //   boardState.tiles,
-              //   boardState.boardWidth,
-              //   boardState.boardHeight,
-              //   [
-              //     // ...state.boards[boardIndex].baseTilesToSpawn,
-              //     ...boardState.newTilesToSpawn,
-              //   ],
-              // ),
-              {
-                id: uniqueId(),
-                name: newPickedOption.name.toString(),
-                value: newPickedOption.value || 2,
-                position: chooseEmptyTilePosition(
-                  state.boards[boardIndex].boardWidth,
-                  state.boards[boardIndex].boardHeight,
-                  state.boards[boardIndex].tiles,
-                ).position,
-                fromLine: newPickedOption.fromLine,
-                type: state.boards[boardIndex].usableDeck[0].type,
-                upgrades: newPickedOption.upgrades || [],
-              },
-            );
-            // remove that tile from the usableDeck
-            state.boards[boardIndex].usableDeck.splice(0, 1);
+          if (boardState.usableDeck.length > 0) {
+            // FIXME: this doesn't show a next tile with 0 tiles left... need to work out the timing.
+            // muffins
+          } else {
+            // we have no tiles in the bag/deck; let's try re-shuffling the tiles back into the bag!
+            boardState.usableDeck = shuffleArray(state.player.baseTileBag);
+            // TODO; maybe add a slide penalty in here for re-shuffling the bag? a la Peglin apparently
           }
+
+          const newPickedOption = boardState.usableDeck[0];
+
+          // console.log("picked tile has fromLine: ", newPickedOption.fromLine);
+          boardState.tiles.push(
+            // addRandomTile(
+            //   boardState.tiles,
+            //   boardState.boardWidth,
+            //   boardState.boardHeight,
+            //   [
+            //     // ...boardState.baseTilesToSpawn,
+            //     ...boardState.newTilesToSpawn,
+            //   ],
+            // ),
+            {
+              id: uniqueId(),
+              name: newPickedOption.name.toString(),
+              value: newPickedOption.value || 2,
+              position: chooseEmptyTilePosition(
+                boardState.boardWidth,
+                boardState.boardHeight,
+                boardState.tiles,
+              ).position,
+              fromLine: newPickedOption.fromLine,
+              type: boardState.usableDeck[0].type,
+              upgrades: newPickedOption.upgrades || [],
+            },
+          );
+          // remove that tile from the usableDeck
+          boardState.usableDeck.splice(0, 1);
+
           // check which parts of the required spell are complete, and mark that in the spell
           // FIXME: do this for each of the player state's chosenSpells.
           // const activeSpell =
@@ -807,24 +823,53 @@ export const useGameStore = create<GameState & Actions>()(
 
     resetGame: () => {
       set((state) => {
-        const newSpell = rollActiveSpellData();
-        const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
-          return [...mergedSpawns, ...spell.spawns];
-        }, []);
+        // const newSpell = rollActiveSpellData();
+        // const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
+        //   return [...mergedSpawns, ...spell.spawns];
+        // }, []);
+        // we want a fixed number of tiles, split between whichever elements make up the chosen spells
+        // for now these tiles will all be 2-value.
+        const TOTAL_TILE_NUM = 24;
+        const elementsFromSpells = spells.reduce<string[]>(
+          (elements, spell) => {
+            const allSpellElements = [
+              ...new Set(spell.requiredTiles.map((rt) => rt.tileName)),
+            ];
+            return [...new Set([...elements, ...allSpellElements])];
+          },
+          [],
+        );
+        const tilesFromSpells = elementsFromSpells
+          .map((element) => {
+            return range(
+              TOTAL_TILE_NUM / elementsFromSpells.length,
+              element,
+            ).map((el) => {
+              return {
+                name: el,
+                weight: 100,
+                type: "ELEMENTAL",
+                fromLine: false,
+              } as Option;
+            });
+          })
+          .flat();
+
         // const myBoard = initBoard(4, 4, newSpell, defaultDeck);
         const myBoard = initBoard(
           4,
           4,
-          allSpawns,
           // allSpawns,
-          newSpell, // TODO: remove this just one spell here
-          allSpawns
-            .map((st) =>
-              Array.from({ length: 25 }, () => ({
-                ...st,
-              })),
-            )
-            .flat(),
+          // allSpawns,
+          // newSpell, // TODO: remove this just one spell here
+          // allSpawns
+          //   .map((st) =>
+          //     Array.from({ length: 25 }, () => ({
+          //       ...st,
+          //     })),
+          //   )
+          //   .flat(),
+          tilesFromSpells,
         );
         state.boards = [myBoard];
         state.choosing = false;
@@ -833,6 +878,7 @@ export const useGameStore = create<GameState & Actions>()(
           currentHealth: 50,
           knownSpells: spells,
           chosenSpells: spells.map((s) => ({ spell: s, complete: [] })),
+          baseTileBag: tilesFromSpells,
         };
         state.waves = [
           [createEnemy(GolbinEnemy), createEnemy(GolbinEnemy)],
@@ -896,9 +942,9 @@ const INITIAL_TARGET = 500;
 const initBoard = (
   width: number,
   height: number,
-  tilesToStart: Option[],
+  // tilesToStart: Option[],
   // baseTilesToSpawn: Option[],
-  newSpell: { spell: Spell; complete: boolean[] },
+  // newSpell: { spell: Spell; complete: boolean[] },
   deckOfTiles: Option[],
 ) => {
   const newBoardState: BoardState = {
@@ -913,8 +959,8 @@ const initBoard = (
     tiles: [],
     basePoints: 0,
     multiplier: 0,
-    baseTilesToSpawn: tilesToStart,
-    newTilesToSpawn: newSpell.spell.spawns,
+    // baseTilesToSpawn: tilesToStart,
+    // newTilesToSpawn: newSpell.spell.spawns,
     // availableSpells: [],
     numberOfSlides: 0,
     // activeSpell: 0,

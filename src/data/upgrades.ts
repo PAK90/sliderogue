@@ -1,8 +1,8 @@
 import { WritableDraft } from "immer";
 import { Actions, GameState } from "../state";
-import shuffleArray from "../helpers/shuffleArray.ts";
-import { spells } from "./spells.ts";
-import { Option } from "../helpers/chooseWeightedOption.ts";
+// import shuffleArray from "../helpers/shuffleArray.ts";
+// import { spells } from "./spells.ts";
+// import { Option } from "../helpers/chooseWeightedOption.ts";
 // import { tile8 } from "./tiles.ts";
 
 export type UpgradeType = "BOARD" | "TILE";
@@ -72,22 +72,23 @@ const silverUpgrade: Upgrade = {
     //   }
     // });
     const { selectedDeckTiles } = board;
+    const { player } = state;
     selectedDeckTiles.forEach((tileIx) => {
-      const potentialUpgrades = board.upgradedDeck[tileIx].upgrades;
+      const potentialUpgrades = player.baseTileBag[tileIx].upgrades;
       if (potentialUpgrades) {
         potentialUpgrades.push("SILVER");
       } else {
-        board.upgradedDeck[tileIx].upgrades = ["SILVER"];
+        player.baseTileBag[tileIx].upgrades = ["SILVER"];
       }
     });
     // FIXME: this is duplicated too many places...
-    const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
-      return [...mergedSpawns, ...spell.spawns];
-    }, []);
-    const deckFromSpawns = allSpawns
-      .map((st) => Array.from({ length: 25 }, () => ({ ...st })))
-      .flat();
-    board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));
+    // const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
+    //   return [...mergedSpawns, ...spell.spawns];
+    // }, []);
+    // const deckFromSpawns = allSpawns
+    //   .map((st) => Array.from({ length: 25 }, () => ({ ...st })))
+    //   .flat();
+    // board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));
     return state;
   },
   type: "TILE",
@@ -118,8 +119,9 @@ const goldUpgrade: Upgrade = {
     //   }
     // });
     const { selectedDeckTiles } = board;
+    const { player } = state;
     selectedDeckTiles.forEach((tileIx) => {
-      const potentialUpgrades = board.upgradedDeck[tileIx].upgrades;
+      const potentialUpgrades = player.baseTileBag[tileIx].upgrades;
       if (potentialUpgrades) {
         potentialUpgrades.push("GOLD");
       } else {
@@ -127,13 +129,13 @@ const goldUpgrade: Upgrade = {
       }
     });
     // FIXME: this is duplicated too many places...
-    const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
-      return [...mergedSpawns, ...spell.spawns];
-    }, []);
-    const deckFromSpawns = allSpawns
-      .map((st) => Array.from({ length: 25 }, () => ({ ...st })))
-      .flat();
-    board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));
+    // const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
+    //   return [...mergedSpawns, ...spell.spawns];
+    // }, []);
+    // const deckFromSpawns = allSpawns
+    //   .map((st) => Array.from({ length: 25 }, () => ({ ...st })))
+    //   .flat();
+    // board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));
     return state;
   },
   type: "TILE",
@@ -241,8 +243,9 @@ const explosiveUpgrade: Upgrade = {
   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
     const board = state.boards[0];
     const { selectedDeckTiles } = board;
+    const { player } = state;
     selectedDeckTiles.forEach((tileIx) => {
-      const potentialUpgrades = board.upgradedDeck[tileIx].upgrades;
+      const potentialUpgrades = player.baseTileBag[tileIx].upgrades;
       if (potentialUpgrades) {
         potentialUpgrades.push("EXPLOSIVE");
       } else {
@@ -250,13 +253,14 @@ const explosiveUpgrade: Upgrade = {
       }
     });
     // FIXME: this is duplicated too many places...
-    const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
-      return [...mergedSpawns, ...spell.spawns];
-    }, []);
-    const deckFromSpawns = allSpawns
-      .map((st) => Array.from({ length: 25 }, () => ({ ...st })))
-      .flat();
-    board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));
+    // const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
+    //   return [...mergedSpawns, ...spell.spawns];
+    // }, []);
+    // const deckFromSpawns = allSpawns
+    //   .map((st) => Array.from({ length: 25 }, () => ({ ...st })))
+    //   .flat();
+    // board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));
+
     return state;
   },
   type: "TILE",

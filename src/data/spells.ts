@@ -1,5 +1,5 @@
 import { fireTile, waterTile } from "./tiles.ts";
-import { Option } from "../helpers/chooseWeightedOption.ts";
+// import { Option } from "../helpers/chooseWeightedOption.ts";
 import { WritableDraft } from "immer";
 import { Actions, GameState } from "../state";
 
@@ -28,7 +28,7 @@ export type Spell = {
     targets: number[], // indices of enemies, since if it's player we don't need, and ALL is all.
     state: WritableDraft<GameState & Actions>,
   ) => WritableDraft<GameState & Actions>;
-  spawns: Option[];
+  // spawns: Option[];
 };
 
 // const steamSpell: Spell = {
@@ -179,7 +179,7 @@ const fireballSpell: Spell = {
     { tileName: fireTile.name, tileValue: 4 },
     // { tileName: fireTile.name, tileValue: 8 },
   ],
-  spawns: [fireTile],
+  // spawns: [fireTile],
   targets: "ENEMY",
   targetQuantity: 2,
   stateUpdater: (targets, state: WritableDraft<GameState & Actions>) => {
@@ -198,7 +198,7 @@ const waterHealingSpell: Spell = {
     { tileName: waterTile.name, tileValue: 4 },
     // { tileName: waterTile.name, tileValue: 8 },
   ],
-  spawns: [waterTile],
+  // spawns: [waterTile],
   targets: "PLAYER",
   targetQuantity: 0, // shouldn't matter here with PLAYER as target
   stateUpdater: (_, state: WritableDraft<GameState & Actions>) => {

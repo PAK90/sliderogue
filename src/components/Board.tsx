@@ -148,7 +148,7 @@ const Board = ({
       <div
         onClick={toggleDeckView}
         className="bg-indigo-200 w-fit m-1 p-0.5 rounded cursor-pointer"
-      >{`Tiles left (click to see deck): ${usableDeck.length}`}</div>
+      >{`Tiles left (click to see bag): ${usableDeck.length}`}</div>
       <div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Mana: ${mana}`}</div>
       <div
         className={`${manaUsed > mana ? "bg-red-200" : "bg-indigo-200"} w-fit m-1 p-0.5 rounded`}

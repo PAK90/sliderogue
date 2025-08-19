@@ -14,6 +14,7 @@ import shuffleArray from "../helpers/shuffleArray.ts";
 import { createEnemy, Enemy, GolbinEnemy } from "../data/enemies.ts";
 import { BASE_MANA_COST, BASE_MANA_MULTIPLIER } from "../data/constants.ts";
 import range from "../helpers/range.ts";
+import { findPatternIndicesByName } from "../helpers/patternMatcher.ts";
 // import range from "../helpers/range.ts";
 
 export type Direction = "up" | "down" | "left" | "right";
@@ -91,7 +92,8 @@ export type GameState = {
   defeatedEnemies: Enemy[];
   choosing: boolean;
   chosenTargets: number[];
-  spellsToTarget: Spell[];
+  spellsToTarget: { spell: Spell; draggedTiles: Tile[] }[];
+  satisfiedSpells: (Tile[] | null)[];
   shopping: boolean;
   upgrading: false | Upgrade;
   deckLooking: boolean;
@@ -132,6 +134,7 @@ export const useGameStore = create<GameState & Actions>()(
     boards: [],
     chosenTargets: [],
     spellsToTarget: [],
+    satisfiedSpells: [],
     activeWave: 0,
     waves: [
       [createEnemy(GolbinEnemy), createEnemy(GolbinEnemy)],
@@ -277,14 +280,31 @@ export const useGameStore = create<GameState & Actions>()(
         });
         // see if the active spell's requirements have been met by the dragged tiles.
         const activeSpells = state.player.chosenSpells;
-        const satisfiedActiveSpells: boolean[] = activeSpells.map((as) => {
-          return as.spell.requiredTiles.every((reqTile) =>
-            draggedTiles.find(
-              (dt) =>
-                dt.name === reqTile.tileName && dt.value === reqTile.tileValue,
-            ),
+        const satisfiedActiveSpells = activeSpells.map((activeSpell) => {
+          // return activeSpell.spell.requiredTiles.every((reqTile) =>
+          //   draggedTiles.find(
+          //     (dt) =>
+          //       dt.name === reqTile.tileName && dt.value === reqTile.tileValue,
+          //   ),
+          // );
+          // TODO: split by tile colours, right now all spells are mono-colour so it doesn't matter... yet.
+          // const patternIndices = findPatternIndices(
+          //   draggedTiles.map((dt) => dt.value),
+          //   activeSpell.spell.requiredTiles.map((rt) => rt.tileValue as string),
+          // );
+          const patternIndices = findPatternIndicesByName(
+            draggedTiles,
+            activeSpell.spell.requiredTiles,
           );
+          if (patternIndices) {
+            return patternIndices.map((pIx) => draggedTiles[pIx]);
+          }
+          return null;
         });
+
+        // this is mostly so that spell effects can access tile value data without having
+        // to run this calc themselves
+        state.satisfiedSpells = satisfiedActiveSpells;
 
         // const percentPerTileLength = 100;
         // const baseManaCostPerTile = 10;
@@ -377,11 +397,12 @@ export const useGameStore = create<GameState & Actions>()(
             if (activeSpells[satIx].spell.targets === "ENEMY") {
               // TODO: targeting!
               state.targeting = true;
-              state.spellsToTarget = state.spellsToTarget.concat(
-                activeSpells[satIx].spell,
-              );
+              state.spellsToTarget = state.spellsToTarget.concat({
+                spell: activeSpells[satIx].spell,
+                draggedTiles: sat,
+              });
             } else {
-              state = activeSpells[satIx].spell.stateUpdater([0], state);
+              state = activeSpells[satIx].spell.stateUpdater([0], state, sat);
             }
           }
         });
@@ -426,8 +447,8 @@ export const useGameStore = create<GameState & Actions>()(
         // take the first spell with targets on the 'stack' and resolve it
         // it should always be the 0th since we concat them on, and will slice this one off after.
         const targets = state.chosenTargets;
-        const spellToResolve = state.spellsToTarget[0];
-        state = spellToResolve.stateUpdater(targets, state);
+        const { spell, draggedTiles } = state.spellsToTarget[0];
+        state = spell.stateUpdater(targets, state, draggedTiles);
         state.spellsToTarget.splice(0, 1);
         state.chosenTargets = []; // reset the targeting.
         if (state.spellsToTarget.length === 0) {
@@ -513,6 +534,8 @@ export const useGameStore = create<GameState & Actions>()(
 
     enspellTile: (tile: Tile) =>
       set((state) => {
+        console.log("ENSPELLING");
+        // FIXME: this isn't being called by anything it seems
         const activeSpell = state.player.chosenSpells[0];
 
         const slotToFillIx = activeSpell.spell.requiredTiles.findIndex(

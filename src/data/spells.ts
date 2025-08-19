@@ -1,7 +1,7 @@
 import { fireTile, waterTile } from "./tiles.ts";
 // import { Option } from "../helpers/chooseWeightedOption.ts";
 import { WritableDraft } from "immer";
-import { Actions, GameState } from "../state";
+import { Actions, GameState, Tile } from "../state";
 
 export const rollActiveSpellData = () => {
   const selectedSpell = rollRandomSpell();
@@ -20,13 +20,14 @@ export type Spell = {
   description: string;
   requiredTiles: {
     tileName: string;
-    tileValue: number;
+    tileValue: number | string;
   }[];
-  targets: "PLAYER" | "ENEMY" | "ALL"; //
+  targets: "PLAYER" | "ENEMY" | "ALL";
   targetQuantity: number;
   stateUpdater: (
     targets: number[], // indices of enemies, since if it's player we don't need, and ALL is all.
     state: WritableDraft<GameState & Actions>,
+    satisfiedDraggedTiles: Tile[],
   ) => WritableDraft<GameState & Actions>;
   // spawns: Option[];
 };
@@ -171,20 +172,50 @@ export type Spell = {
 //   spawns: [airTile, fireTile],
 // };
 
+// function draggedTileValue(
+//   draggedCells: Coordinate[],
+//   tiles: Tile[],
+//   draggedTileIndices: number[],
+// ) {
+//   const draggedTiles = draggedCells.reduce((dTiles, dCell) => {
+//     // see if we have a tile in this cell
+//     const potentialCell = tiles.find(
+//       (t) => t.position.x === dCell.x && t.position.y === dCell.y,
+//     );
+//
+//     if (potentialCell) {
+//       dTiles.push(potentialCell);
+//     }
+//     return dTiles;
+//   }, [] as Tile[]);
+//   const draggedValue = draggedTileIndices.reduce((dValue, dTileIx) => {
+//     return dValue + draggedTiles[dTileIx].value;
+//   }, 0);
+//   return draggedValue;
+// }
+
 const fireballSpell: Spell = {
   name: "Fireball",
-  description: "Fires a flaming sphere at up to 2 targets.",
+  description: "Deal TILEVALUE damage to up to 2 targets.",
   requiredTiles: [
-    { tileName: fireTile.name, tileValue: 2 },
-    { tileName: fireTile.name, tileValue: 4 },
-    // { tileName: fireTile.name, tileValue: 8 },
+    { tileName: fireTile.name, tileValue: "x" },
+    { tileName: fireTile.name, tileValue: "2x" },
   ],
   // spawns: [fireTile],
   targets: "ENEMY",
   targetQuantity: 2,
-  stateUpdater: (targets, state: WritableDraft<GameState & Actions>) => {
+  stateUpdater: (
+    targets,
+    state: WritableDraft<GameState & Actions>,
+    draggedTiles,
+  ) => {
+    const draggedValue = draggedTiles.reduce(
+      (total, dTile) => (total += dTile.value),
+      0,
+    );
+    console.log("dragged value: ", draggedValue);
     targets.forEach((target) => {
-      state.waves[state.activeWave][target].currentHealth -= 5;
+      state.waves[state.activeWave][target].currentHealth -= draggedValue;
     });
     return state;
   },
@@ -192,19 +223,27 @@ const fireballSpell: Spell = {
 
 const waterHealingSpell: Spell = {
   name: "Vitamin Water",
-  description: "Heals you for 11 health.",
+  description: "Heals you for TILEVALUE * 2 health.",
   requiredTiles: [
-    { tileName: waterTile.name, tileValue: 2 },
-    { tileName: waterTile.name, tileValue: 4 },
-    // { tileName: waterTile.name, tileValue: 8 },
+    { tileName: waterTile.name, tileValue: "x" },
+    { tileName: waterTile.name, tileValue: "2x" },
   ],
   // spawns: [waterTile],
   targets: "PLAYER",
   targetQuantity: 0, // shouldn't matter here with PLAYER as target
-  stateUpdater: (_, state: WritableDraft<GameState & Actions>) => {
+  stateUpdater: (
+    _,
+    state: WritableDraft<GameState & Actions>,
+    draggedTiles,
+  ) => {
+    const draggedValue = draggedTiles.reduce(
+      (total, dTile) => (total += dTile.value),
+      0,
+    );
+    console.log("dragged value: ", draggedValue);
     state.player.currentHealth = Math.min(
       state.player.maxHealth,
-      state.player.currentHealth + 11,
+      state.player.currentHealth + draggedValue * 2,
     );
     return state;
   },

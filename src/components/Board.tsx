@@ -27,7 +27,7 @@ const Board = ({
     draggedCells,
     mana,
     gold,
-    spellsCompleted,
+    // spellsCompleted,
     selectedTiles,
     ownedItems,
     usableDeck,
@@ -45,6 +45,7 @@ const Board = ({
     setLockedTileNames,
     player,
     targeting,
+    satisfiedSpells,
     submitTargetsToSpell,
   } = useGameStore();
 
@@ -52,14 +53,14 @@ const Board = ({
   // const [scoreData, setScoreData] = useState({ tileScore: 0, length: 0 });
   const [manaUsed, setManaUsed] = useState(0);
 
-  const spellsCompletedRecord =
-    localStorage.getItem("spellsCompletedRecord") || "0";
-
-  useEffect(() => {
-    if (spellsCompleted > parseInt(spellsCompletedRecord)) {
-      localStorage.setItem("spellsCompletedRecord", spellsCompleted.toString());
-    }
-  }, [spellsCompleted, spellsCompletedRecord]);
+  // const spellsCompletedRecord =
+  //   localStorage.getItem("spellsCompletedRecord") || "0";
+  //
+  // useEffect(() => {
+  //   if (spellsCompleted > parseInt(spellsCompletedRecord)) {
+  //     localStorage.setItem("spellsCompletedRecord", spellsCompleted.toString());
+  //   }
+  // }, [spellsCompleted, spellsCompletedRecord]);
 
   const handleMouseDown = useCallback(
     (cell: Coordinate) => {
@@ -261,8 +262,8 @@ const Board = ({
           Submit Targets
         </button>
       )}
-      {player.chosenSpells.map((spell) => (
-        <SpellRender spellData={spell} />
+      {player.chosenSpells.map((spell, sIx) => (
+        <SpellRender spellData={spell} satisfied={!!satisfiedSpells[sIx]} />
       ))}
     </div>
   );

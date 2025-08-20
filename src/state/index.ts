@@ -280,31 +280,31 @@ export const useGameStore = create<GameState & Actions>()(
         });
         // see if the active spell's requirements have been met by the dragged tiles.
         const activeSpells = state.player.chosenSpells;
-        const satisfiedActiveSpells = activeSpells.map((activeSpell) => {
-          // return activeSpell.spell.requiredTiles.every((reqTile) =>
-          //   draggedTiles.find(
-          //     (dt) =>
-          //       dt.name === reqTile.tileName && dt.value === reqTile.tileValue,
-          //   ),
-          // );
-          // TODO: split by tile colours, right now all spells are mono-colour so it doesn't matter... yet.
-          // const patternIndices = findPatternIndices(
-          //   draggedTiles.map((dt) => dt.value),
-          //   activeSpell.spell.requiredTiles.map((rt) => rt.tileValue as string),
-          // );
-          const patternIndices = findPatternIndicesByName(
-            draggedTiles,
-            activeSpell.spell.requiredTiles,
-          );
-          if (patternIndices) {
-            return patternIndices.map((pIx) => draggedTiles[pIx]);
-          }
-          return null;
-        });
+        // const satisfiedActiveSpells = activeSpells.map((activeSpell) => {
+        //   // return activeSpell.spell.requiredTiles.every((reqTile) =>
+        //   //   draggedTiles.find(
+        //   //     (dt) =>
+        //   //       dt.name === reqTile.tileName && dt.value === reqTile.tileValue,
+        //   //   ),
+        //   // );
+        //   //  split by tile colours, right now all spells are mono-colour so it doesn't matter... yet.
+        //   // const patternIndices = findPatternIndices(
+        //   //   draggedTiles.map((dt) => dt.value),
+        //   //   activeSpell.spell.requiredTiles.map((rt) => rt.tileValue as string),
+        //   // );
+        //   const patternIndices = findPatternIndicesByName(
+        //     draggedTiles,
+        //     activeSpell.spell.requiredTiles,
+        //   );
+        //   if (patternIndices) {
+        //     return patternIndices.map((pIx) => draggedTiles[pIx]);
+        //   }
+        //   return null;
+        // });
 
         // this is mostly so that spell effects can access tile value data without having
-        // to run this calc themselves
-        state.satisfiedSpells = satisfiedActiveSpells;
+        // to run this calc themselves; NOT REQUIRED ANYMORE since we just pass in the tiles right away
+        // state.satisfiedSpells = satisfiedActiveSpells;
 
         // const percentPerTileLength = 100;
         // const baseManaCostPerTile = 10;
@@ -392,7 +392,7 @@ export const useGameStore = create<GameState & Actions>()(
           (satisfiesActiveSpell ? 2 : 1);*/
 
         // do spell effects
-        satisfiedActiveSpells.forEach((sat, satIx) => {
+        state.satisfiedSpells.forEach((sat, satIx) => {
           if (sat) {
             if (activeSpells[satIx].spell.targets === "ENEMY") {
               // TODO: targeting!
@@ -473,34 +473,64 @@ export const useGameStore = create<GameState & Actions>()(
     setDraggedPath: (c: Coordinate[], boardIndex: number) =>
       set((state) => {
         const boardState = state.boards[boardIndex];
-        const tiles = boardState.tiles;
+
+        // update dragged cell state
+        boardState.draggedCells = c;
+
+        // calculate dragged tiles
+        const draggedTiles: Tile[] = [];
+        c.forEach((dCell) => {
+          // see if we have a tile in this cell
+          const potentialCell = boardState.tiles.find(
+            (t) => t.position.x === dCell.x && t.position.y === dCell.y,
+          );
+
+          if (potentialCell) {
+            draggedTiles.push(potentialCell);
+          }
+        });
+        // console.log("draggedTiles: ", draggedTiles);
 
         // calculate the base and multipliers here
-        const calculateScoreBits = (c: Coordinate[]) => {
-          const { tileScore, length } = c.reduce(
-            (scoreParts, cell) => {
-              const cellTile = tiles.find(
-                (t) => t.position.x === cell.x && t.position.y === cell.y,
-              );
-              if (cellTile) {
-                return {
-                  tileScore: scoreParts.tileScore + cellTile.value,
-                  length: scoreParts.length + 1,
-                };
-              }
-              return scoreParts;
-            },
-            { tileScore: 0, length: 0 },
+        // const calculateScoreBits = (c: Coordinate[]) => {
+        //   const { tileScore, length } = c.reduce(
+        //     (scoreParts, cell) => {
+        //       const cellTile = tiles.find(
+        //         (t) => t.position.x === cell.x && t.position.y === cell.y,
+        //       );
+        //       if (cellTile) {
+        //         return {
+        //           tileScore: scoreParts.tileScore + cellTile.value,
+        //           length: scoreParts.length + 1,
+        //         };
+        //       }
+        //       return scoreParts;
+        //     },
+        //     { tileScore: 0, length: 0 },
+        //   );
+        //   return { tileScore, length };
+        // };
+        // const oldScore = calculateScoreBits(boardState.draggedCells);
+        // const newScore = calculateScoreBits(c);
+
+        // see if the active spell's requirements have been met by the dragged tiles.
+        const activeSpells = state.player.chosenSpells;
+        const satisfiedActiveSpells = activeSpells.map((activeSpell) => {
+          const patternIndices = findPatternIndicesByName(
+            draggedTiles,
+            activeSpell.spell.requiredTiles,
           );
-          return { tileScore, length };
-        };
-        const oldScore = calculateScoreBits(boardState.draggedCells);
-        boardState.draggedCells = c;
-        const newScore = calculateScoreBits(c);
+          if (patternIndices) {
+            return patternIndices.map((pIx) => draggedTiles[pIx]);
+          }
+          return null;
+        });
+
+        state.satisfiedSpells = satisfiedActiveSpells;
 
         // TODO: also include effects from patterns here
-        boardState.multiplier += newScore.length - oldScore.length;
-        boardState.basePoints += newScore.tileScore - oldScore.tileScore;
+        // boardState.multiplier += newScore.length - oldScore.length;
+        // boardState.basePoints += newScore.tileScore - oldScore.tileScore;
       }),
 
     setChoosing: () =>

@@ -2,11 +2,13 @@ import { tileColourMap } from "../data/constants.ts";
 
 const TileRender = ({
   tile,
+  faded,
 }: {
   tile: {
     name: string;
     value?: number | string;
   };
+  faded?: boolean;
 }) => {
   const value = tile.value || 2;
   return (
@@ -18,7 +20,7 @@ const TileRender = ({
                   ${value.toString().indexOf("$") > -1 && "cursor-pointer"}
                 `}
       style={{
-        // opacity: spellData.complete[ix] ? "100%" : "50%",
+        opacity: !faded ? "100%" : "50%",
         position: "relative",
       }}
     >

@@ -15,6 +15,7 @@ import { createEnemy, Enemy, GolbinEnemy } from "../data/enemies.ts";
 import { BASE_MANA_COST, BASE_MANA_MULTIPLIER } from "../data/constants.ts";
 import range from "../helpers/range.ts";
 import { findPatternIndicesByName } from "../helpers/patternMatcher.ts";
+import { Buff } from "../data/buffs.ts";
 // import range from "../helpers/range.ts";
 
 export type Direction = "up" | "down" | "left" | "right";
@@ -50,6 +51,7 @@ export type Player = {
   knownSpells: Spell[];
   chosenSpells: { spell: Spell; complete: boolean[] }[];
   baseTileBag: Option[];
+  buffs: Buff[];
 };
 
 export type BoardState = {
@@ -153,6 +155,7 @@ export const useGameStore = create<GameState & Actions>()(
       chosenSpells: spells.map((s) => ({ spell: s, complete: [] })),
       knownSpells: spells,
       baseTileBag: [], // to be filled in once the player chooses spells
+      buffs: [],
     },
     imminentAnnihilations: [],
 
@@ -932,6 +935,7 @@ export const useGameStore = create<GameState & Actions>()(
           knownSpells: spells,
           chosenSpells: spells.map((s) => ({ spell: s, complete: [] })),
           baseTileBag: tilesFromSpells,
+          buffs: [],
         };
         state.waves = [
           [createEnemy(GolbinEnemy), createEnemy(GolbinEnemy)],

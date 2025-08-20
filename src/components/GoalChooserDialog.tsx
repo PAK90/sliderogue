@@ -54,6 +54,7 @@ const GoalChooserDialog = () => {
                 spell,
                 complete: spell.requiredTiles.map(() => true),
               }}
+              satisfied={true}
             />
           </div>
         ))}

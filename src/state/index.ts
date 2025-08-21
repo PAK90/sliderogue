@@ -790,6 +790,14 @@ export const useGameStore = create<GameState & Actions>()(
                   // update the score... and mana.
                   // state.boards[boardIndex].score += tileHere.value;
                   boardState.mana += tileHere.value;
+
+                  // if the tile was used for a spell, remove it
+                  if (satisfiedTile) {
+                    const tileHereIx = boardState.tiles.findIndex(
+                      (t) => t.id === tileHere.id,
+                    );
+                    boardState.tiles.splice(tileHereIx, 1);
+                  }
                 } else if (elementalCollisionResult) {
                   // move the tile that's about to be deleted so that it looks good
                   tileHere.position = positions.next;

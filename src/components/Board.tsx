@@ -45,7 +45,6 @@ const Board = ({
     setLockedTileNames,
     player,
     targeting,
-    satisfiedSpells,
     submitTargetsToSpell,
   } = useGameStore();
 
@@ -262,8 +261,8 @@ const Board = ({
           Submit Targets
         </button>
       )}
-      {player.chosenSpells.map((spell, sIx) => (
-        <SpellRender spellData={spell} satisfied={!!satisfiedSpells[sIx]} />
+      {player.chosenSpells.map((spell) => (
+        <SpellRender spellData={spell} />
       ))}
     </div>
   );

@@ -52,9 +52,8 @@ const GoalChooserDialog = () => {
             <SpellRender
               spellData={{
                 spell,
-                complete: spell.requiredTiles.map(() => true),
+                complete: spell.requiredTiles.map(() => false),
               }}
-              satisfied={true}
             />
           </div>
         ))}

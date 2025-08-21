@@ -22,7 +22,7 @@ export type Spell = {
     tileName: string;
     tileValue: number | string;
   }[];
-  targets: "PLAYER" | "ENEMY" | "ALL";
+  targets: "PLAYER" | "ENEMY" | "ENEMIES" | "ALL";
   targetQuantity: number;
   stateUpdater: (
     targets: number[], // indices of enemies, since if it's player we don't need, and ALL is all.
@@ -32,190 +32,29 @@ export type Spell = {
   // spawns: Option[];
 };
 
-// const steamSpell: Spell = {
-//   name: "Steam Cooker",
-//   requiredTiles: [
-//     { tileName: fireTile.name, tileValue: 4 },
-//     { tileName: fireTile.name, tileValue: 8 },
-//     { tileName: waterTile.name, tileValue: 4 },
-//     { tileName: waterTile.name, tileValue: 8 },
-//   ],
-//   // essentially doubling the chance of getting fire and water tiles
-//   spawns: [fireTile, waterTile],
-// };
-//
-// const lavaSpell: Spell = {
-//   name: "Lava Flow",
-//   requiredTiles: [
-//     { tileName: fireTile.name, tileValue: 4 },
-//     { tileName: fireTile.name, tileValue: 8 },
-//     { tileName: earthTile.name, tileValue: 4 },
-//     { tileName: earthTile.name, tileValue: 8 },
-//   ],
-//   spawns: [fireTile, earthTile],
-// };
-//
-// const sandstormSpell: Spell = {
-//   name: "Sand Storm",
-//   requiredTiles: [
-//     { tileName: airTile.name, tileValue: 4 },
-//     { tileName: airTile.name, tileValue: 8 },
-//     { tileName: earthTile.name, tileValue: 4 },
-//     { tileName: earthTile.name, tileValue: 8 },
-//   ],
-//   spawns: [airTile, earthTile],
-// };
-//
-// const mistySpell: Spell = {
-//   name: "Morning Mist",
-//   requiredTiles: [
-//     { tileName: waterTile.name, tileValue: 4 },
-//     { tileName: waterTile.name, tileValue: 8 },
-//     { tileName: airTile.name, tileValue: 4 },
-//     { tileName: airTile.name, tileValue: 8 },
-//   ],
-//   spawns: [waterTile, airTile],
-// };
-//
-// const mudflowSpell: Spell = {
-//   name: "Mud Flow",
-//   requiredTiles: [
-//     { tileName: waterTile.name, tileValue: 4 },
-//     { tileName: waterTile.name, tileValue: 8 },
-//     { tileName: earthTile.name, tileValue: 4 },
-//     { tileName: earthTile.name, tileValue: 8 },
-//   ],
-//   spawns: [waterTile, earthTile],
-// };
-//
-// const staticsparkSpell: Spell = {
-//   name: "Static Sparks",
-//   requiredTiles: [
-//     { tileName: fireTile.name, tileValue: 4 },
-//     { tileName: fireTile.name, tileValue: 8 },
-//     { tileName: airTile.name, tileValue: 4 },
-//     { tileName: airTile.name, tileValue: 8 },
-//   ],
-//   spawns: [fireTile, airTile],
-// };
-
-// const waterHoseSpell: Spell = {
-//   name: "Water Hose",
-//   requiredTiles: [
-//     { tileName: waterTile.name, tileValue: 16 },
-//     { tileName: waterTile.name, tileValue: 32 },
-//     { tileName: waterTile.name, tileValue: 64 },
-//   ],
-// };
-//
-// const fireConeSpell: Spell = {
-//   name: "Fire Cone",
-//   requiredTiles: [
-//     { tileName: fireTile.name, tileValue: 16 },
-//     { tileName: fireTile.name, tileValue: 32 },
-//     { tileName: fireTile.name, tileValue: 64 },
-//   ],
-// };
-
-// const rainbowSpell: Spell = {
-//   name: "Taste the Rainbow",
-//   requiredTiles: [
-//     { tileName: fireTile.name, tileValue: 8 },
-//     { tileName: waterTile.name, tileValue: 8 },
-//     { tileName: earthTile.name, tileValue: 8 },
-//     { tileName: airTile.name, tileValue: 8 },
-//   ],
-//   spawns: [],
-// };
-
-// const airSpell1: Spell = {
-//   name: "Static Sparks",
-//   requiredTiles: [
-//     { tileName: airTile.name, tileValue: 4 },
-//     { tileName: fireTile.name, tileValue: 4 },
-//     { tileName: airTile.name, tileValue: 8 },
-//     { tileName: fireTile.name, tileValue: 8 },
-//   ],
-//   spawns: [airTile, fireTile],
-// };
-//
-// const airSpell2: Spell = {
-//   name: "Static Sparks2",
-//   requiredTiles: [
-//     { tileName: airTile.name, tileValue: 2 },
-//     { tileName: fireTile.name, tileValue: 4 },
-//     { tileName: airTile.name, tileValue: 8 },
-//     { tileName: fireTile.name, tileValue: 16 },
-//   ],
-//   spawns: [airTile, fireTile],
-// };
-//
-// const airSpell3: Spell = {
-//   name: "Static Sparks3",
-//   requiredTiles: [
-//     { tileName: airTile.name, tileValue: 16 },
-//     { tileName: fireTile.name, tileValue: 16 },
-//     { tileName: airTile.name, tileValue: 16 },
-//   ],
-//   spawns: [airTile, fireTile],
-// };
-//
-// const airSpell4: Spell = {
-//   name: "Static Sparks4",
-//   requiredTiles: [
-//     { tileName: airTile.name, tileValue: 2 },
-//     { tileName: fireTile.name, tileValue: 2 },
-//     { tileName: airTile.name, tileValue: 4 },
-//     { tileName: fireTile.name, tileValue: 4 },
-//     { tileName: airTile.name, tileValue: 4 },
-//   ],
-//   spawns: [airTile, fireTile],
-// };
-
-// function draggedTileValue(
-//   draggedCells: Coordinate[],
-//   tiles: Tile[],
-//   draggedTileIndices: number[],
-// ) {
-//   const draggedTiles = draggedCells.reduce((dTiles, dCell) => {
-//     // see if we have a tile in this cell
-//     const potentialCell = tiles.find(
-//       (t) => t.position.x === dCell.x && t.position.y === dCell.y,
-//     );
-//
-//     if (potentialCell) {
-//       dTiles.push(potentialCell);
-//     }
-//     return dTiles;
-//   }, [] as Tile[]);
-//   const draggedValue = draggedTileIndices.reduce((dValue, dTileIx) => {
-//     return dValue + draggedTiles[dTileIx].value;
-//   }, 0);
-//   return draggedValue;
-// }
-
 const fireballSpell: Spell = {
   name: "Fireball",
-  description: "Deal TILEVALUE damage to up to 2 targets.",
+  description: "Deal TILEVALUE damage to all enemies.",
   requiredTiles: [
     { tileName: fireTile.name, tileValue: "x" },
     { tileName: fireTile.name, tileValue: "2x" },
   ],
   // spawns: [fireTile],
-  targets: "ENEMY",
-  targetQuantity: 2,
+  targets: "ENEMIES",
+  targetQuantity: -1, // doesn't matter, all enemies.
   stateUpdater: (
-    targets,
+    _,
     state: WritableDraft<GameState & Actions>,
     draggedTiles,
   ) => {
+    const targets = state.waves[state.activeWave];
     const draggedValue = draggedTiles.reduce(
       (total, dTile) => (total += dTile.value),
       0,
     );
     console.log("dragged value: ", draggedValue);
     targets.forEach((target) => {
-      state.waves[state.activeWave][target].currentHealth -= draggedValue;
+      target.currentHealth -= draggedValue;
     });
     return state;
   },

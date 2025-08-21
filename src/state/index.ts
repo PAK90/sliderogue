@@ -14,7 +14,10 @@ import shuffleArray from "../helpers/shuffleArray.ts";
 import { createEnemy, Enemy, GolbinEnemy } from "../data/enemies.ts";
 import { BASE_MANA_COST, BASE_MANA_MULTIPLIER } from "../data/constants.ts";
 import range from "../helpers/range.ts";
-import { findPatternIndicesByName } from "../helpers/patternMatcher.ts";
+import {
+  findPatternIndicesByName,
+  parseFactor,
+} from "../helpers/patternMatcher.ts";
 import { Buff } from "../data/buffs.ts";
 // import range from "../helpers/range.ts";
 
@@ -49,7 +52,7 @@ export type Player = {
   maxHealth: number;
   currentHealth: number;
   knownSpells: Spell[];
-  chosenSpells: { spell: Spell; complete: boolean[] }[];
+  chosenSpells: { spell: Spell; complete: (false | Tile)[] }[];
   baseTileBag: Option[];
   buffs: Buff[];
 };
@@ -152,7 +155,10 @@ export const useGameStore = create<GameState & Actions>()(
       currentHealth: 50,
       // TODO; move this to a choosing UI that presents all of the starter spells
       // TODO: for now we prechoose two from the spells file.
-      chosenSpells: spells.map((s) => ({ spell: s, complete: [] })),
+      chosenSpells: spells.map((s) => ({
+        spell: s,
+        complete: s.requiredTiles.map(() => false),
+      })),
       knownSpells: spells,
       baseTileBag: [], // to be filled in once the player chooses spells
       buffs: [],
@@ -412,9 +418,10 @@ export const useGameStore = create<GameState & Actions>()(
         console.log("activated spell state updaed", state.spellsToTarget);
 
         // re-calculate annihilation pairs after possibly removing tiles with the Line
-        boardState.imminentAnnihilations = detectAnnihilations(
-          boardState.tiles,
-        );
+        // TODO: re-enable annihilations once I figure out how to do them in slide-only mode
+        // boardState.imminentAnnihilations = detectAnnihilations(
+        //   boardState.tiles,
+        // );
 
         const targetIncrease = 1.5;
         // state.boards[boardIndex].spellsCompleted += 1;
@@ -583,7 +590,7 @@ export const useGameStore = create<GameState & Actions>()(
 
         if (slotToFillIx > -1) {
           // shouldn't need this if statement, but you never know
-          activeSpell.complete[slotToFillIx] = true;
+          activeSpell.complete[slotToFillIx] = tile;
         }
 
         // if the spell is now complete, let the player roll a new one
@@ -659,6 +666,8 @@ export const useGameStore = create<GameState & Actions>()(
           boardState.boardHeight,
         );
 
+        const activeSpells = state.player.chosenSpells;
+
         traversals.x.forEach((xTrav) => {
           traversals.y.forEach((yTrav) => {
             const currentCell = { x: xTrav, y: yTrav };
@@ -690,10 +699,12 @@ export const useGameStore = create<GameState & Actions>()(
               if (nextPotentialTile) {
                 // we can merge in two scenarios; elemental cancellation,
                 // or equal values + names (i.e. fire2 + fire2 = fire4).
-                const elementalCollisionResult = elementsCollide(
-                  tileHere,
-                  nextPotentialTile,
-                );
+                // TODO: re-enable this annihilation calc when we figure out how to use it without line
+                const elementalCollisionResult = false;
+                // const elementalCollisionResult = elementsCollide(
+                //   tileHere,
+                //   nextPotentialTile,
+                // );
                 if (
                   tileHere.name === nextPotentialTile.name &&
                   tileHere.value === nextPotentialTile.value
@@ -708,17 +719,6 @@ export const useGameStore = create<GameState & Actions>()(
                     ),
                   );
 
-                  // if we have the 8-ball, give us some more base points.
-                  const eightBalls = boardState.ownedItems.filter(
-                    (oi) => oi === "8 Ball",
-                  );
-                  if (
-                    eightBalls.length &&
-                    (tileHere.value === 8 || nextPotentialTile.value === 8)
-                  ) {
-                    boardState.basePoints += eightBalls.length * 8;
-                  }
-
                   // delete the merging tiles
                   const nextTileIx = boardState.tiles.findIndex(
                     (t) => t.id === nextPotentialTile.id,
@@ -731,6 +731,61 @@ export const useGameStore = create<GameState & Actions>()(
                   // set the tile to now be 'aged', i.e. it can show up again
                   // in the tile deck/bag, since it now has a new value.
                   tileHere.fromLine = false;
+
+                  // NOW; let's see if any spells exist for which this tile satisfies a requirement
+                  let satisfiedTile = false;
+                  activeSpells.forEach((spell) => {
+                    spell.spell.requiredTiles.forEach(
+                      (spellRequiredTile, srqIx) => {
+                        if (
+                          spellRequiredTile.tileName === tileHere.name &&
+                          !satisfiedTile &&
+                          !spell.complete[srqIx]
+                        ) {
+                          // we match the colour/element, now we need to check the values...
+                          // if no slots have been completed yet, we can take any value
+                          if (spell.complete.every((v) => !v)) {
+                            spell.complete[0] = tileHere;
+                            satisfiedTile = true;
+                          } else {
+                            // assuming first spell required tile is 'x',
+                            // let's take that requiredValue and find the other required values
+                            const existingTile = spell.complete[0];
+                            // FIXME: this needs to work with numbers too.
+                            if (existingTile) {
+                              const requiredValue =
+                                parseFactor(
+                                  spellRequiredTile.tileValue as string,
+                                ) * existingTile.value;
+                              if (requiredValue === tileHere.value) {
+                                satisfiedTile = true;
+                                spell.complete[srqIx] = tileHere;
+                              }
+                            }
+                          }
+                        }
+                      },
+                    );
+                    // if after all this, the spell is all complete, cast it and reset it
+                    if (spell.complete.every((v) => !!v)) {
+                      if (spell.spell.targets === "ENEMY") {
+                        state.targeting = true;
+                        state.spellsToTarget = state.spellsToTarget.concat({
+                          spell: spell.spell,
+                          draggedTiles: spell.complete as Tile[],
+                        });
+                      } else {
+                        state = spell.spell.stateUpdater(
+                          [0],
+                          state,
+                          spell.complete as Tile[],
+                        );
+                      }
+                      spell.complete = spell.spell.requiredTiles.map(
+                        () => false,
+                      );
+                    }
+                  });
 
                   // update the score... and mana.
                   // state.boards[boardIndex].score += tileHere.value;
@@ -866,10 +921,11 @@ export const useGameStore = create<GameState & Actions>()(
         }
 
         // check for which tiles are in position to be elementally annihilated.
-        state.boards[boardIndex].imminentAnnihilations = detectAnnihilations(
-          state.boards[boardIndex].tiles,
-        );
-        console.log(state.boards[boardIndex].imminentAnnihilations);
+        // TODO: re-enable this once we figure out annihilations for slide-only
+        // state.boards[boardIndex].imminentAnnihilations = detectAnnihilations(
+        //   state.boards[boardIndex].tiles,
+        // );
+        // console.log(state.boards[boardIndex].imminentAnnihilations);
       }),
 
     toggleTargeting: () =>
@@ -933,7 +989,10 @@ export const useGameStore = create<GameState & Actions>()(
           maxHealth: 50,
           currentHealth: 50,
           knownSpells: spells,
-          chosenSpells: spells.map((s) => ({ spell: s, complete: [] })),
+          chosenSpells: spells.map((s) => ({
+            spell: s,
+            complete: s.requiredTiles.map(() => false),
+          })),
           baseTileBag: tilesFromSpells,
           buffs: [],
         };
@@ -951,48 +1010,48 @@ export const useGameStore = create<GameState & Actions>()(
   })),
 );
 
-const detectAnnihilations = (tiles: Tile[]) => {
-  // for each tile, look up/down/left/right of it and see if there's a tile it will annihilate with
-  const annihilationPairs: AnnihilationPair[] = [];
-  // const checkedPos: string[] = [];
-
-  tiles.forEach((tile) => {
-    // TODO; make this not find-based...
-    const posToCheck = [];
-    const dRow = [-1, 0, 1, 0];
-    const dCol = [0, 1, 0, -1];
-    const { x, y } = tile.position;
-
-    for (let i = 0; i < 4; i++) {
-      const adjx = x + dRow[i];
-      const adjy = y + dCol[i];
-
-      if (
-        adjx >= 0 ||
-        adjy >= 0 ||
-        adjy < 5 ||
-        adjx < 5
-        // !checkedPos.includes(`${adjx}-${adjy}`)
-      ) {
-        posToCheck.push({ x: adjx, y: adjy });
-        // checkedPos.push(`${adjx}-${adjy}`);
-      }
-    }
-
-    posToCheck.forEach((pos) => {
-      const tileToCheck = tiles.find(
-        (t) => t.position.x === pos.x && t.position.y === pos.y,
-      );
-      if (tileToCheck) {
-        const collisionResults = elementsCollide(tile, tileToCheck);
-        if (collisionResults && tileToCheck.value === tile.value) {
-          annihilationPairs.push(collisionResults as AnnihilationPair);
-        }
-      }
-    });
-  });
-  return annihilationPairs;
-};
+// const detectAnnihilations = (tiles: Tile[]) => {
+//   // for each tile, look up/down/left/right of it and see if there's a tile it will annihilate with
+//   const annihilationPairs: AnnihilationPair[] = [];
+//   // const checkedPos: string[] = [];
+//
+//   tiles.forEach((tile) => {
+//     // TODO; make this not find-based...
+//     const posToCheck = [];
+//     const dRow = [-1, 0, 1, 0];
+//     const dCol = [0, 1, 0, -1];
+//     const { x, y } = tile.position;
+//
+//     for (let i = 0; i < 4; i++) {
+//       const adjx = x + dRow[i];
+//       const adjy = y + dCol[i];
+//
+//       if (
+//         adjx >= 0 ||
+//         adjy >= 0 ||
+//         adjy < 5 ||
+//         adjx < 5
+//         // !checkedPos.includes(`${adjx}-${adjy}`)
+//       ) {
+//         posToCheck.push({ x: adjx, y: adjy });
+//         // checkedPos.push(`${adjx}-${adjy}`);
+//       }
+//     }
+//
+//     posToCheck.forEach((pos) => {
+//       const tileToCheck = tiles.find(
+//         (t) => t.position.x === pos.x && t.position.y === pos.y,
+//       );
+//       if (tileToCheck) {
+//         const collisionResults = elementsCollide(tile, tileToCheck);
+//         if (collisionResults && tileToCheck.value === tile.value) {
+//           annihilationPairs.push(collisionResults as AnnihilationPair);
+//         }
+//       }
+//     });
+//   });
+//   return annihilationPairs;
+// };
 
 const INITIAL_TARGET = 500;
 
@@ -1083,31 +1142,31 @@ const initBoard = (
 };
 
 export type AnnihilationPair = { winner: Tile; loser: Tile };
-const elementsCollide = (t1: Tile, t2: Tile): AnnihilationPair | boolean => {
-  // Takes in two elemental tiles and returns the winner
-  // Returns false if it's not a destructive combo.
-  // for now, can only annihilate within range 1.
-  // return false;
-  if (
-    Math.abs(t1.position.x - t2.position.x) === 1 ||
-    Math.abs(t1.position.y - t2.position.y) === 1
-  ) {
-    const winningMap = {
-      F: "W",
-      A: "E",
-      E: "A",
-      W: "F",
-    };
-    // @ts-expect-error don't know how to fix
-    if (winningMap[t1.name] === t2.name) {
-      return { winner: t1, loser: t2 };
-      // @ts-expect-error don't know how to fix
-    } else if (winningMap[t2.name] === t1.name) {
-      return { winner: t2, loser: t1 };
-    }
-  }
-  return false;
-};
+// const elementsCollide = (t1: Tile, t2: Tile): AnnihilationPair | boolean => {
+//   // Takes in two elemental tiles and returns the winner
+//   // Returns false if it's not a destructive combo.
+//   // for now, can only annihilate within range 1.
+//   // return false;
+//   if (
+//     Math.abs(t1.position.x - t2.position.x) === 1 ||
+//     Math.abs(t1.position.y - t2.position.y) === 1
+//   ) {
+//     const winningMap = {
+//       F: "W",
+//       A: "E",
+//       E: "A",
+//       W: "F",
+//     };
+//     // @ts-expect-error don't know how to fix
+//     if (winningMap[t1.name] === t2.name) {
+//       return { winner: t1, loser: t2 };
+//       // @ts-expect-error don't know how to fix
+//     } else if (winningMap[t2.name] === t1.name) {
+//       return { winner: t2, loser: t1 };
+//     }
+//   }
+//   return false;
+// };
 
 // const tilesCanMerge = (t1: Tile, t2: Tile) => {
 //   const specialTileIds = [div2Tile, x2Tile].map((t) => t.id);

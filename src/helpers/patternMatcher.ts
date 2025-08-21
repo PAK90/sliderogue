@@ -2,7 +2,7 @@ type Item = { name: string; value: number };
 type MatcherToken = { tileName: string; tileValue: string | number };
 
 /** "x", "2x", "-0.5x", "+x" -> factor; disallow 0x */
-function parseFactor(token: string): number {
+export function parseFactor(token: string): number {
   const m = token.trim().match(/^\s*([+-]?(?:\d*\.?\d+)?)\s*x\s*$/i);
   if (!m)
     throw new Error(`Bad tileValue "${token}" (use "x", "2x", "0.5x", etc.)`);

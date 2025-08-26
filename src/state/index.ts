@@ -11,14 +11,19 @@ import { Item } from "../data/items.ts";
 import { chooseEmptyTilePosition } from "../helpers/chooseEmptyTilePosition.ts";
 import { uniqueId } from "../helpers/uniqueId.ts";
 import shuffleArray from "../helpers/shuffleArray.ts";
-import { createEnemy, Enemy, GolbinEnemy } from "../data/enemies.ts";
+import { createEnemy, Enemy, GolbinEnemy, isEnemy } from "../data/enemies.ts";
 import { BASE_MANA_COST, BASE_MANA_MULTIPLIER } from "../data/constants.ts";
 import range from "../helpers/range.ts";
 import {
   findPatternIndicesByName,
   parseFactor,
 } from "../helpers/patternMatcher.ts";
-import { Buff } from "../data/buffs.ts";
+import {
+  addEffectInternal,
+  commitSlideInternal,
+  removeEffectInternal,
+} from "../data/effects.ts";
+import { flyTileToSpell } from "../helpers/flyToSpell.ts";
 // import range from "../helpers/range.ts";
 
 export type Direction = "up" | "down" | "left" | "right";
@@ -38,24 +43,81 @@ export type Coordinate = {
 export type TileType = "WEAPON" | "ENEMY" | "NUMBER" | "ELEMENTAL";
 export type TileUpgrades = "GOLD" | "SILVER" | "EXPLOSIVE";
 
+export type EffectId = string;
+export type EffectName = "Block" | "Poison";
+export type EntityId = string;
+
+export interface Entity {
+  id: EntityId;
+  name: string;
+  currentHealth: number;
+  maxHealth: number;
+  kind: string;
+}
+
+export interface EffectInstance {
+  id: EffectId;
+  name: EffectName;
+  target: EntityId;
+  source?: EntityId;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: Record<string, any>; // per-effect state, e.g. { amount: 12 } or { stacks: 7 }
+  expiresAtSlide?: number; // inclusive (expires when state.slide >= expiresAtSlide)
+  priority?: number; // higher runs first in pipelines (default 0)
+}
+
+export interface DamageCtx {
+  target: EntityId;
+  amount: number; // mutable; effects can reduce/modify
+  tags?: string[]; // e.g. ["poison","hp_loss"]
+}
+
+export type EffectDef = {
+  modifyIncomingDamage?: (
+    state: GameState,
+    self: EffectInstance,
+    ctx: DamageCtx,
+  ) => void;
+  onExpire?: (state: GameState, self: EffectInstance) => void;
+  onSlideEnd?: (state: GameState, self: EffectInstance) => void;
+
+  // NEW: run before removal; return true to PREVENT death (e.g., Grit/Undying)
+  onBeforeDeath?: (
+    state: GameState,
+    self: EffectInstance,
+    evt: DeathEvent,
+  ) => boolean | void;
+
+  // NEW: run when an entity dies (deathrattles, soul orbs, etc.)
+  onDeath?: (state: GameState, self: EffectInstance, evt: DeathEvent) => void;
+};
+
+export type DeathEvent = {
+  entityId: EntityId;
+  cause: "damage" | "poison" | "effect" | "script";
+  amount?: number; // last chunk that set HP <= 0
+  tags?: string[]; // pass-through tags (e.g., ["poison"])
+};
+
 export type Tile = {
   position: Coordinate;
   value: number;
   name: string;
-  id: number;
+  id: EntityId;
   fromLine: boolean;
   type: TileType;
   upgrades: TileUpgrades[];
 };
 
-export type Player = {
-  maxHealth: number;
-  currentHealth: number;
+export const isPlayer = (e: Player | Enemy): e is Enemy => e.kind === "player";
+
+export interface Player extends Entity {
   knownSpells: Spell[];
   chosenSpells: { spell: Spell; complete: (false | Tile)[] }[];
   baseTileBag: Option[];
-  buffs: Buff[];
-};
+  // buffs: Buff[];
+  kind: "player";
+}
 
 export type BoardState = {
   tiles: Tile[];
@@ -103,6 +165,13 @@ export type GameState = {
   upgrading: false | Upgrade;
   deckLooking: boolean;
   targeting: boolean;
+
+  // HYBRID: global instances + per-target index
+  effects: Record<EffectId, EffectInstance>;
+  effectsByTarget: Record<EntityId, EffectId[]>;
+
+  // trying to have both player and enemies here
+  entities: Record<EntityId, Player | Enemy>;
 };
 
 export type Actions = {
@@ -127,6 +196,22 @@ export type Actions = {
   submitTargetsToSpell: () => void;
   setChosenTargets: (t: number) => void;
   defeatEnemy: (e: Enemy) => void;
+  castReadySpells: () => void;
+
+  addEffect: (
+    target: EntityId,
+    name: EffectName,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data: Record<string, any>,
+    opts?: {
+      durationSlides?: number;
+      priority?: number;
+      stacking?: "add" | "refresh" | "replace";
+    },
+  ) => EffectId;
+  removeEffect: (id: EffectId) => void;
+  // dealDamage: (targetId: EntityId, base: number, tags?: string[]) => void;
+  // commitSlide: () => void;
 };
 
 export const useGameStore = create<GameState & Actions>()(
@@ -142,12 +227,8 @@ export const useGameStore = create<GameState & Actions>()(
     satisfiedSpells: [],
     activeWave: 0,
     waves: [
-      [createEnemy(GolbinEnemy), createEnemy(GolbinEnemy)],
-      [
-        createEnemy(GolbinEnemy),
-        createEnemy(GolbinEnemy),
-        createEnemy(GolbinEnemy),
-      ],
+      [GolbinEnemy, GolbinEnemy],
+      [GolbinEnemy, GolbinEnemy, GolbinEnemy],
     ],
     defeatedEnemies: [],
     player: {
@@ -161,9 +242,16 @@ export const useGameStore = create<GameState & Actions>()(
       })),
       knownSpells: spells,
       baseTileBag: [], // to be filled in once the player chooses spells
-      buffs: [],
+      kind: "player",
+      id: "PLAYER",
+      name: "Sir Bearington",
     },
     imminentAnnihilations: [],
+
+    effects: {},
+    effectsByTarget: {},
+
+    entities: {},
 
     setSelectedTiles: (t: Tile, bIx: number) =>
       set((state) => {
@@ -237,7 +325,6 @@ export const useGameStore = create<GameState & Actions>()(
             window.alert("w00t you beat the game!");
           } else {
             // drop some tasty loot
-            // FIXME; this currently goes over EVERY enemy, not just the ones this wave.
             state.defeatedEnemies.forEach((defeatedEnemy) => {
               // TODO; genericise this
               boardState.gold += defeatedEnemy.loot.reduce(
@@ -251,6 +338,7 @@ export const useGameStore = create<GameState & Actions>()(
               );
             });
             state.shopping = true;
+            state.defeatedEnemies = [];
           }
 
           // make any tiles used for spells be added to the base deck for the next round
@@ -272,6 +360,43 @@ export const useGameStore = create<GameState & Actions>()(
         }
       });
     },
+
+    castReadySpells: () =>
+      set((state) => {
+        const boardState = state.boards[0];
+        const { player } = state;
+        const activeSpells = player.chosenSpells;
+
+        activeSpells.forEach((activeSpell, asIx) => {
+          if (
+            activeSpell.complete.every((v) => !!v) &&
+            activeSpell.spell.manaCost <= boardState.mana
+          ) {
+            // spend the mana FIRST before doing effect, since setting mana to 0
+            // happens in the damage effect.
+            console.log("casting spell", activeSpell.spell.name);
+            boardState.mana -= activeSpell.spell.manaCost;
+
+            if (activeSpell.spell.targets === "ENEMY") {
+              state.targeting = true;
+              state.spellsToTarget = state.spellsToTarget.concat({
+                spell: activeSpell.spell,
+                draggedTiles: activeSpell.complete as Tile[],
+              });
+            } else {
+              state = activeSpell.spell.stateUpdater(
+                [0],
+                state,
+                activeSpell.complete as Tile[],
+              );
+            }
+            // reset the spell
+            activeSpell.complete = activeSpells[asIx].spell.requiredTiles.map(
+              () => false,
+            );
+          }
+        });
+      }),
 
     useDraggedPath: (boardIndex: number) =>
       set((state) => {
@@ -767,24 +892,24 @@ export const useGameStore = create<GameState & Actions>()(
                       },
                     );
                     // if after all this, the spell is all complete, cast it and reset it
-                    if (spell.complete.every((v) => !!v)) {
-                      if (spell.spell.targets === "ENEMY") {
-                        state.targeting = true;
-                        state.spellsToTarget = state.spellsToTarget.concat({
-                          spell: spell.spell,
-                          draggedTiles: spell.complete as Tile[],
-                        });
-                      } else {
-                        state = spell.spell.stateUpdater(
-                          [0],
-                          state,
-                          spell.complete as Tile[],
-                        );
-                      }
-                      spell.complete = spell.spell.requiredTiles.map(
-                        () => false,
-                      );
-                    }
+                    // if (spell.complete.every((v) => !!v)) {
+                    //   if (spell.spell.targets === "ENEMY") {
+                    //     state.targeting = true;
+                    //     state.spellsToTarget = state.spellsToTarget.concat({
+                    //       spell: spell.spell,
+                    //       draggedTiles: spell.complete as Tile[],
+                    //     });
+                    //   } else {
+                    //     state = spell.spell.stateUpdater(
+                    //       [0],
+                    //       state,
+                    //       spell.complete as Tile[],
+                    //     );
+                    //   }
+                    //   spell.complete = spell.spell.requiredTiles.map(
+                    //     () => false,
+                    //   );
+                    // }
                   });
 
                   // update the score... and mana.
@@ -797,6 +922,7 @@ export const useGameStore = create<GameState & Actions>()(
                       (t) => t.id === tileHere.id,
                     );
                     boardState.tiles.splice(tileHereIx, 1);
+                    flyTileToSpell(tileHere.id, 0);
                   }
                 } else if (elementalCollisionResult) {
                   // move the tile that's about to be deleted so that it looks good
@@ -854,8 +980,10 @@ export const useGameStore = create<GameState & Actions>()(
           // record a move!
           boardState.numberOfSlides++;
 
+          commitSlideInternal(state);
+
           // for each enemy, check if their abilities should activate
-          const enemies = state.waves[state.activeWave];
+          const enemies = Object.values(state.entities).filter(isEnemy);
           enemies.forEach((enemy) => {
             enemy.abilities.forEach((ability) => {
               if (boardState.numberOfSlides % ability.slidesToActivate === 0) {
@@ -936,6 +1064,17 @@ export const useGameStore = create<GameState & Actions>()(
         // console.log(state.boards[boardIndex].imminentAnnihilations);
       }),
 
+    addEffect: (target, name, data, opts) =>
+      set((state) => {
+        const id = addEffectInternal(state, target, name, data, opts);
+        return id;
+      }) as any, // to satisfy TS since set-return is ignored; you can wrap for a real return
+
+    removeEffect: (id) =>
+      set((state) => {
+        removeEffectInternal(state, id);
+      }),
+
     toggleTargeting: () =>
       set((state) => {
         state.targeting = !state.targeting;
@@ -1002,7 +1141,9 @@ export const useGameStore = create<GameState & Actions>()(
             complete: s.requiredTiles.map(() => false),
           })),
           baseTileBag: tilesFromSpells,
-          buffs: [],
+          kind: "player",
+          id: "PLAYER",
+          name: "Sir Bearington",
         };
         state.waves = [
           [createEnemy(GolbinEnemy), createEnemy(GolbinEnemy)],
@@ -1013,6 +1154,25 @@ export const useGameStore = create<GameState & Actions>()(
           ],
         ];
         state.activeWave = 0;
+
+        state.entities = {
+          [state.player.id]: state.player,
+          ...state.waves[state.activeWave].reduce(
+            (acc, en) => {
+              acc[en.id] = {
+                id: en.id,
+                kind: "enemy",
+                name: en.name,
+                maxHealth: en.maxHealth,
+                currentHealth: en.currentHealth,
+                abilities: en.abilities,
+                loot: en.loot,
+              } as Enemy;
+              return acc;
+            },
+            {} as Record<EntityId, Enemy>,
+          ),
+        };
       });
     },
   })),

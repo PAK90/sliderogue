@@ -7,7 +7,7 @@ import ShopDialog from "./ShopDialog.tsx";
 import DeckViewDialog from "./DeckViewDialog.tsx";
 
 const GameArea = () => {
-  const { move, resetGame, boards } = useGameStore();
+  const { move, resetGame, boards, castReadySpells } = useGameStore();
 
   const handlers = useSwipeable({
     onSwiped: (eventData) => console.log("User Swiped!", eventData),
@@ -36,6 +36,9 @@ const GameArea = () => {
         break;
       case "ArrowRight":
         move("right");
+        break;
+      case " ":
+        castReadySpells();
         break;
       default:
         break;

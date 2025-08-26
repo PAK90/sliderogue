@@ -33,6 +33,7 @@ const BoardTileRender = ({ tile }: { tile: Tile }) => {
       onClick={() => {
         setSelectedTiles(tile, 0);
       }}
+      data-tile-id={tile.id}
       className={`
                   w-20 h-20 ${tileColourMap[tile.name as keyof typeof tileColourMap]} 
                   rounded flex items-center justify-center

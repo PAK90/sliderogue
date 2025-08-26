@@ -2,6 +2,8 @@ import { fireTile, waterTile } from "./tiles.ts";
 // import { Option } from "../helpers/chooseWeightedOption.ts";
 import { WritableDraft } from "immer";
 import { Actions, GameState, Tile } from "../state";
+import { dealDamageInternal } from "./effects.ts";
+import { isEnemy } from "./enemies.ts";
 
 export const rollActiveSpellData = () => {
   const selectedSpell = rollRandomSpell();
@@ -22,6 +24,7 @@ export type Spell = {
     tileName: string;
     tileValue: number | string;
   }[];
+  manaCost: number;
   targets: "PLAYER" | "ENEMY" | "ENEMIES" | "ALL";
   targetQuantity: number;
   stateUpdater: (
@@ -41,20 +44,22 @@ const fireballSpell: Spell = {
   ],
   // spawns: [fireTile],
   targets: "ENEMIES",
+  manaCost: 25,
   targetQuantity: -1, // doesn't matter, all enemies.
   stateUpdater: (
     _,
     state: WritableDraft<GameState & Actions>,
     draggedTiles,
   ) => {
-    const targets = state.waves[state.activeWave];
+    const targets = Object.values(state.entities).filter(isEnemy);
     const draggedValue = draggedTiles.reduce(
       (total, dTile) => (total += dTile.value),
       0,
     );
     console.log("dragged value: ", draggedValue);
     targets.forEach((target) => {
-      target.currentHealth -= draggedValue;
+      // target.currentHealth -= draggedValue;
+      dealDamageInternal(state, target.id, draggedValue);
     });
     return state;
   },
@@ -69,6 +74,7 @@ const waterHealingSpell: Spell = {
   ],
   // spawns: [waterTile],
   targets: "PLAYER",
+  manaCost: 25,
   targetQuantity: 0, // shouldn't matter here with PLAYER as target
   stateUpdater: (
     _,
@@ -80,10 +86,12 @@ const waterHealingSpell: Spell = {
       0,
     );
     console.log("dragged value: ", draggedValue);
-    state.player.currentHealth = Math.min(
-      state.player.maxHealth,
-      state.player.currentHealth + draggedValue * 2,
-    );
+    // TODO: figure out if healing should be its own effect.
+    // state.player.currentHealth = Math.min(
+    //   state.player.maxHealth,
+    //   state.player.currentHealth + draggedValue * 2,
+    // );
+    dealDamageInternal(state, "PLAYER", -draggedValue);
     return state;
   },
 };

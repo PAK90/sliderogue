@@ -4,5 +4,5 @@ export const uniqueId = (length = 16) => {
       .toPrecision(length)
       .toString()
       .replace(".", ""),
-  );
+  ).toString();
 };

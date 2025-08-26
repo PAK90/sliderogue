@@ -2,12 +2,12 @@ import BoardTileRender from "./BoardTileRender.tsx";
 import range from "../helpers/range.ts";
 import { BoardState, Coordinate, useGameStore } from "../state";
 import SpellRender from "./SpellRender.tsx";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ConnectionRender from "./ConnectionRender.tsx";
 import {
   BASE_MANA_COST,
   BASE_MANA_MULTIPLIER,
-  tileColourMap,
+  // tileColourMap,
 } from "../data/constants.ts";
 import CombatBoard from "./CombatBoard.tsx";
 import TileRender from "./TileRender.tsx";
@@ -31,18 +31,19 @@ const Board = ({
     selectedTiles,
     ownedItems,
     usableDeck,
-    lockedTileNames,
+    // lockedTileNames,
     imminentAnnihilations,
   } = board;
   const {
     setDraggedPath,
-    useDraggedPath,
+    // useDraggedPath,
+    castReadySpells,
     upgrading,
     applyUpgrade,
     openShopping,
     endUpgrading,
     toggleDeckView,
-    setLockedTileNames,
+    // setLockedTileNames,
     player,
     targeting,
     submitTargetsToSpell,
@@ -60,6 +61,19 @@ const Board = ({
   //     localStorage.setItem("spellsCompletedRecord", spellsCompleted.toString());
   //   }
   // }, [spellsCompleted, spellsCompletedRecord]);
+
+  const castableFlags = useMemo(() => {
+    let manaRemaining = mana;
+    return player.chosenSpells.map((activeSpell) => {
+      const isComplete = activeSpell.complete.every(Boolean);
+      const canCastNow =
+        isComplete && activeSpell.spell.manaCost <= manaRemaining;
+      if (canCastNow) {
+        manaRemaining -= activeSpell.spell.manaCost;
+      }
+      return canCastNow;
+    });
+  }, [player.chosenSpells, mana]);
 
   const handleMouseDown = useCallback(
     (cell: Coordinate) => {
@@ -129,13 +143,13 @@ const Board = ({
 
   const tileSize = 448 / 5;
 
-  const lockTile = (tileName: string) => {
-    if (lockedTileNames.includes(tileName)) {
-      setLockedTileNames([]);
-    } else {
-      setLockedTileNames([tileName]);
-    }
-  };
+  // const lockTile = (tileName: string) => {
+  //   if (lockedTileNames.includes(tileName)) {
+  //     setLockedTileNames([]);
+  //   } else {
+  //     setLockedTileNames([tileName]);
+  //   }
+  // };
 
   return (
     <div className="flex-col">
@@ -155,21 +169,21 @@ const Board = ({
       >{`Mana used: ${manaUsed}`}</div>
       <div className="bg-gray-700 w-fit m-1 p-0.5 rounded text-gray-200">{`Items: ${ownedItems.join(", ")}`}</div>
       <CombatBoard />
-      <div>
-        {tiles
-          .reduce<string[]>((listOfTileNames, tile) => {
-            if (listOfTileNames.includes(tile.name)) {
-              return listOfTileNames;
-            }
-            return [...listOfTileNames, tile.name];
-          }, [])
-          .map((tileName: string) => (
-            <button
-              className={`rounded m-1 p-0.5 ${tileColourMap[tileName as keyof typeof tileColourMap]}`}
-              onClick={() => lockTile(tileName)}
-            >{`${lockedTileNames.includes(tileName) ? "Unlock" : "Lock  "} ${tileName}`}</button>
-          ))}
-      </div>
+      {/*<div>*/}
+      {/*  {tiles*/}
+      {/*    .reduce<string[]>((listOfTileNames, tile) => {*/}
+      {/*      if (listOfTileNames.includes(tile.name)) {*/}
+      {/*        return listOfTileNames;*/}
+      {/*      }*/}
+      {/*      return [...listOfTileNames, tile.name];*/}
+      {/*    }, [])*/}
+      {/*    .map((tileName: string) => (*/}
+      {/*      <button*/}
+      {/*        className={`rounded m-1 p-0.5 ${tileColourMap[tileName as keyof typeof tileColourMap]}`}*/}
+      {/*        onClick={() => lockTile(tileName)}*/}
+      {/*      >{`${lockedTileNames.includes(tileName) ? "Unlock" : "Lock  "} ${tileName}`}</button>*/}
+      {/*    ))}*/}
+      {/*</div>*/}
       {/*<div>{`${basePoints} x ${multiplier} = ${basePoints * multiplier}`}</div>*/}
       {usableDeck.length > 0 && (
         <div className="flex flex-row">
@@ -247,10 +261,11 @@ const Board = ({
       {!upgrading && (
         <button
           disabled={mana < manaUsed}
-          onClick={() => useDraggedPath(boardIndex)}
+          // onClick={() => useDraggedPath(boardIndex)}
+          onClick={castReadySpells}
           className={`font-bold text-xl p-1 rounded ${mana < manaUsed ? "border-gray-400 text-gray-400" : "border-gray-900"} border-4`}
         >
-          Cast Selected Spells
+          Cast Ready Spells (Spacebar)
         </button>
       )}
       {targeting && (
@@ -261,9 +276,15 @@ const Board = ({
           Submit Targets
         </button>
       )}
-      {player.chosenSpells.map((spell) => (
-        <SpellRender spellData={spell} />
-      ))}
+      {player.chosenSpells.map((spell, sIx) => {
+        return (
+          <SpellRender
+            spellData={spell}
+            spellIndex={sIx}
+            castable={castableFlags[sIx]}
+          />
+        );
+      })}
     </div>
   );
 };

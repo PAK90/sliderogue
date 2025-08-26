@@ -1,40 +1,41 @@
-import { Player, useGameStore } from "../state";
-import { Enemy } from "../data/enemies.ts";
+import { isPlayer, Player, useGameStore } from "../state";
+import { Enemy, isEnemy } from "../data/enemies.ts";
 import { Ability } from "../data/abilities.ts";
 import { useEffect } from "react";
 
 const CombatBoard = () => {
   const {
-    player,
-    waves,
-    activeWave,
+    // player,
     boards,
     targeting,
     chosenTargets,
     setChosenTargets,
-    defeatEnemy,
+    // defeatEnemy,
     resetGame,
+    entities,
   } = useGameStore();
   const boardState = boards[0];
   const { numberOfSlides } = boardState;
-  const enemies = waves[activeWave];
+  // const enemies = waves[activeWave];
+  const enemies = Object.values(entities).filter(isEnemy);
+  const player = Object.values(entities).filter(isPlayer)[0];
 
-  function isEnemy(entity: Player | Enemy): entity is Enemy {
-    return "abilities" in entity; // <– proper narrowing
-  }
+  // function isEnemy(entity: Player | Enemy): entity is Enemy {
+  //   return "abilities" in entity; // <– proper narrowing
+  // }
 
   const addToTargets = (eIndex: number) => {
     if (targeting) setChosenTargets(eIndex);
   };
 
   // monitor the enemies to remove them from play when they die
-  useEffect(() => {
-    enemies.forEach((enemy) => {
-      if (enemy.currentHealth <= 0) {
-        defeatEnemy(enemy);
-      }
-    });
-  }, [enemies, defeatEnemy]);
+  // useEffect(() => {
+  //   enemies.forEach((enemy) => {
+  //     if (enemy.currentHealth <= 0) {
+  //       defeatEnemy(enemy);
+  //     }
+  //   });
+  // }, [enemies, defeatEnemy]);
 
   useEffect(() => {
     if (player.currentHealth <= 0) {

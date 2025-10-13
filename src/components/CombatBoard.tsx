@@ -1,7 +1,8 @@
-import { isPlayer, Player, useGameStore } from "../state";
+import { EffectInstance, isPlayer, Player, useGameStore } from "../state";
 import { Enemy, isEnemy } from "../data/enemies.ts";
 import { Ability } from "../data/abilities.ts";
 import { useEffect } from "react";
+import { formatEffect } from "../data/effects.ts";
 
 const CombatBoard = () => {
   const {
@@ -13,29 +14,22 @@ const CombatBoard = () => {
     // defeatEnemy,
     resetGame,
     entities,
+
+    effects,
+    effectsByTarget,
+    enemyAbilityCD,
   } = useGameStore();
   const boardState = boards[0];
   const { numberOfSlides } = boardState;
-  // const enemies = waves[activeWave];
-  const enemies = Object.values(entities).filter(isEnemy);
+  const enemies = Object.values(entities)
+    .filter(isEnemy)
+    .sort((a, b) => a.position - b.position);
+  console.log("enemies: ", enemies);
   const player = Object.values(entities).filter(isPlayer)[0];
-
-  // function isEnemy(entity: Player | Enemy): entity is Enemy {
-  //   return "abilities" in entity; // <– proper narrowing
-  // }
 
   const addToTargets = (eIndex: number) => {
     if (targeting) setChosenTargets(eIndex);
   };
-
-  // monitor the enemies to remove them from play when they die
-  // useEffect(() => {
-  //   enemies.forEach((enemy) => {
-  //     if (enemy.currentHealth <= 0) {
-  //       defeatEnemy(enemy);
-  //     }
-  //   });
-  // }, [enemies, defeatEnemy]);
 
   useEffect(() => {
     if (player.currentHealth <= 0) {
@@ -43,11 +37,18 @@ const CombatBoard = () => {
       resetGame();
     }
   }, [player, resetGame]);
+  console.log("enemycd: ", enemyAbilityCD);
 
   const renderEntity = (entity: Player | Enemy, enemyIndex: number) => {
     const enemy = isEnemy(entity);
+    // TODO: make this not just for one ability.
     const ability: Ability | undefined =
       enemy && entity.abilities.length ? entity.abilities[0] : undefined;
+
+    const effectsOnEntity: EffectInstance[] = effectsByTarget[entity.id]?.map(
+      (eId) => effects[eId],
+    );
+    console.log(effectsOnEntity);
 
     const ratio = Math.max(
       0,
@@ -73,7 +74,6 @@ const CombatBoard = () => {
           className={`absolute inset-x-0 bottom-0 ${fillBg} transition-[height] duration-300`}
           style={{ height: `${ratio * 100}%` }}
         />
-
         {/* Content */}
         <div className="relative p-2">
           <p className="font-medium">
@@ -83,9 +83,17 @@ const CombatBoard = () => {
           <p className="text-wrap text-sm">
             {ability &&
               `Activating ability "${ability.name}" in ${
-                ability.slidesToActivate -
-                (numberOfSlides % ability.slidesToActivate)
+                enemyAbilityCD[entity.id]?.[0]
               } slides`}
+          </p>
+
+          <p className="text-wrap text-sm">
+            {effectsOnEntity?.map((effect, eIx) => (
+              <span key={eIx} className="text-gray-500">
+                {/*{`${effect.name} ${effect.data["amount"]}`}*/}
+                {formatEffect(effect)}
+              </span>
+            ))}
           </p>
         </div>
       </div>

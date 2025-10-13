@@ -11,7 +11,7 @@ import { Item } from "../data/items.ts";
 import { chooseEmptyTilePosition } from "../helpers/chooseEmptyTilePosition.ts";
 import { uniqueId } from "../helpers/uniqueId.ts";
 import shuffleArray from "../helpers/shuffleArray.ts";
-import { createEnemy, Enemy, GolbinEnemy, isEnemy } from "../data/enemies.ts";
+import { createEnemy, Enemy, GolbinEnemy } from "../data/enemies.ts";
 import { BASE_MANA_COST, BASE_MANA_MULTIPLIER } from "../data/constants.ts";
 import range from "../helpers/range.ts";
 import {
@@ -44,7 +44,7 @@ export type TileType = "WEAPON" | "ENEMY" | "NUMBER" | "ELEMENTAL";
 export type TileUpgrades = "GOLD" | "SILVER" | "EXPLOSIVE";
 
 export type EffectId = string;
-export type EffectName = "Block" | "Poison";
+export type EffectName = "Block" | "Poison" | "Burn" | "Freeze";
 export type EntityId = string;
 
 export interface Entity {
@@ -90,6 +90,18 @@ export type EffectDef = {
 
   // NEW: run when an entity dies (deathrattles, soul orbs, etc.)
   onDeath?: (state: GameState, self: EffectInstance, evt: DeathEvent) => void;
+
+  suppressAbilityTick?: (
+    state: GameState,
+    self: EffectInstance,
+    enemyId: EntityId,
+  ) => boolean;
+
+  // --- NEW: display metadata ---
+  label?: string; // "Block"
+  short?: string; // "BLK"
+  getValue?: (self: EffectInstance) => number | null | undefined; // canonical “magnitude”
+  format?: (self: EffectInstance, state?: GameState) => string; // final string
 };
 
 export type DeathEvent = {
@@ -157,7 +169,8 @@ export type GameState = {
   activeWave: number;
   waves: Enemy[][];
   defeatedEnemies: Enemy[];
-  choosing: boolean;
+  choosing_old: boolean;
+  choosingSpells: boolean;
   chosenTargets: number[];
   spellsToTarget: { spell: Spell; draggedTiles: Tile[] }[];
   satisfiedSpells: (Tile[] | null)[];
@@ -172,6 +185,7 @@ export type GameState = {
 
   // trying to have both player and enemies here
   entities: Record<EntityId, Player | Enemy>;
+  enemyAbilityCD: Record<EntityId, number[]>; // per-enemy array aligned with enemy.abilities
 };
 
 export type Actions = {
@@ -198,6 +212,8 @@ export type Actions = {
   defeatEnemy: (e: Enemy) => void;
   castReadySpells: () => void;
 
+  setChosenSpells: (spells: Spell[]) => void;
+
   addEffect: (
     target: EntityId,
     name: EffectName,
@@ -216,7 +232,8 @@ export type Actions = {
 
 export const useGameStore = create<GameState & Actions>()(
   immer((set) => ({
-    choosing: false,
+    choosing_old: false,
+    choosingSpells: true,
     shopping: false,
     upgrading: false,
     deckLooking: false,
@@ -227,8 +244,12 @@ export const useGameStore = create<GameState & Actions>()(
     satisfiedSpells: [],
     activeWave: 0,
     waves: [
-      [GolbinEnemy, GolbinEnemy],
-      [GolbinEnemy, GolbinEnemy, GolbinEnemy],
+      [createEnemy(GolbinEnemy, 0, "a"), createEnemy(GolbinEnemy, 1, "z")],
+      [
+        createEnemy(GolbinEnemy, 0, "a"),
+        createEnemy(GolbinEnemy, 1, "j"),
+        createEnemy(GolbinEnemy, 2, "z"),
+      ],
     ],
     defeatedEnemies: [],
     player: {
@@ -236,10 +257,11 @@ export const useGameStore = create<GameState & Actions>()(
       currentHealth: 50,
       // TODO; move this to a choosing UI that presents all of the starter spells
       // TODO: for now we prechoose two from the spells file.
-      chosenSpells: spells.map((s) => ({
-        spell: s,
-        complete: s.requiredTiles.map(() => false),
-      })),
+      // chosenSpells: spells.map((s) => ({
+      //   spell: s,
+      //   complete: s.requiredTiles.map(() => false),
+      // })),
+      chosenSpells: [], // will be set by choosing UI.
       knownSpells: spells,
       baseTileBag: [], // to be filled in once the player chooses spells
       kind: "player",
@@ -250,8 +272,64 @@ export const useGameStore = create<GameState & Actions>()(
 
     effects: {},
     effectsByTarget: {},
+    enemyAbilityCD: {},
 
     entities: {},
+
+    setChosenSpells: (spells: Spell[]) =>
+      set((state) => {
+        state.choosingSpells = false;
+        state.player.chosenSpells = spells.map((s) => ({
+          spell: s,
+          complete: s.requiredTiles.map(() => false),
+        }));
+
+        const TOTAL_TILE_NUM = 24;
+        const elementsFromSpells = spells.reduce<string[]>(
+          (elements, spell) => {
+            const allSpellElements = [
+              ...new Set(spell.requiredTiles.map((rt) => rt.tileName)),
+            ];
+            return [...new Set([...elements, ...allSpellElements])];
+          },
+          [],
+        );
+        const tilesFromSpells = elementsFromSpells
+          .map((element) => {
+            return range(
+              TOTAL_TILE_NUM / elementsFromSpells.length,
+              element,
+            ).map((el) => {
+              return {
+                name: el,
+                weight: 100,
+                type: "ELEMENTAL",
+                fromLine: false,
+              } as Option;
+            });
+          })
+          .flat();
+
+        // const myBoard = initBoard(4, 4, newSpell, defaultDeck);
+        const myBoard = initBoard(
+          4,
+          4,
+          // allSpawns,
+          // allSpawns,
+          // newSpell, // TODO: remove this just one spell here
+          // allSpawns
+          //   .map((st) =>
+          //     Array.from({ length: 25 }, () => ({
+          //       ...st,
+          //     })),
+          //   )
+          //   .flat(),
+          tilesFromSpells,
+        );
+
+        state.player.baseTileBag = tilesFromSpells;
+        state.boards = [myBoard];
+      }),
 
     setSelectedTiles: (t: Tile, bIx: number) =>
       set((state) => {
@@ -377,14 +455,17 @@ export const useGameStore = create<GameState & Actions>()(
             console.log("casting spell", activeSpell.spell.name);
             boardState.mana -= activeSpell.spell.manaCost;
 
-            if (activeSpell.spell.targets === "ENEMY") {
+            if (
+              activeSpell.spell.targets === "ENEMY" &&
+              activeSpell.spell.targetQuantity > 0
+            ) {
               state.targeting = true;
               state.spellsToTarget = state.spellsToTarget.concat({
                 spell: activeSpell.spell,
                 draggedTiles: activeSpell.complete as Tile[],
               });
             } else {
-              state = activeSpell.spell.stateUpdater(
+              activeSpell.spell.stateUpdater(
                 [0],
                 state,
                 activeSpell.complete as Tile[],
@@ -565,7 +646,7 @@ export const useGameStore = create<GameState & Actions>()(
           // reset things
           boardState.lines = 99;
           boardState.score = 0;
-          state.choosing = true;
+          state.choosing_old = true;
           // clear the board of tiles after completion?
           boardState.tiles = [];
           boardState.mana = 0;
@@ -670,7 +751,7 @@ export const useGameStore = create<GameState & Actions>()(
 
     setChoosing: () =>
       set((state) => {
-        state.choosing = !state.choosing;
+        state.choosing_old = !state.choosing_old;
       }),
 
     // setActiveSpell: (newSpell: Spell, boardIx: number) =>
@@ -723,7 +804,7 @@ export const useGameStore = create<GameState & Actions>()(
           // const newSpell = rollActiveSpellData();
           // state.boards[0].availableSpells = [newSpell];
           // state.boards[0].newTilesToSpawn = newSpell.spell.spawns;
-          state.choosing = true;
+          state.choosing_old = true;
         }
 
         // delete the tile that's now 'in' the spell
@@ -775,7 +856,7 @@ export const useGameStore = create<GameState & Actions>()(
 
     move: (direction: Direction, boardIndex = 0) =>
       set((state) => {
-        if (state.choosing) return;
+        if (state.choosing_old) return;
 
         let moved = false;
         const boardState = state.boards[boardIndex];
@@ -977,21 +1058,21 @@ export const useGameStore = create<GameState & Actions>()(
         });
 
         if (moved) {
-          // record a move!
-          boardState.numberOfSlides++;
+          // record a move! moved this to the slideEffect in effects.ts
+          // boardState.numberOfSlides++;
 
           commitSlideInternal(state);
 
           // for each enemy, check if their abilities should activate
-          const enemies = Object.values(state.entities).filter(isEnemy);
-          enemies.forEach((enemy) => {
-            enemy.abilities.forEach((ability) => {
-              if (boardState.numberOfSlides % ability.slidesToActivate === 0) {
-                state = ability.stateUpdater(state);
-                console.log("activated enemy ability", ability);
-              }
-            });
-          });
+          // const enemies = Object.values(state.entities).filter(isEnemy);
+          // enemies.forEach((enemy) => {
+          //   enemy.abilities.forEach((ability) => {
+          //     if (boardState.numberOfSlides % ability.slidesToActivate === 0) {
+          //       state = ability.stateUpdater(state);
+          //       console.log("activated enemy ability", ability);
+          //     }
+          //   });
+          // });
 
           // add a random tile if any are left.
           if (boardState.usableDeck.length > 0) {
@@ -1064,11 +1145,13 @@ export const useGameStore = create<GameState & Actions>()(
         // console.log(state.boards[boardIndex].imminentAnnihilations);
       }),
 
-    addEffect: (target, name, data, opts) =>
+    addEffect: (target, name, data, opts) => {
+      let outId!: EffectId; // will be set inside the producer
       set((state) => {
-        const id = addEffectInternal(state, target, name, data, opts);
-        return id;
-      }) as any, // to satisfy TS since set-return is ignored; you can wrap for a real return
+        outId = addEffectInternal(state, target, name, data, opts); // mutate draft only
+      });
+      return outId; // return from the action (not from set)
+    },
 
     removeEffect: (id) =>
       set((state) => {
@@ -1088,73 +1171,82 @@ export const useGameStore = create<GameState & Actions>()(
         // }, []);
         // we want a fixed number of tiles, split between whichever elements make up the chosen spells
         // for now these tiles will all be 2-value.
-        const TOTAL_TILE_NUM = 24;
-        const elementsFromSpells = spells.reduce<string[]>(
-          (elements, spell) => {
-            const allSpellElements = [
-              ...new Set(spell.requiredTiles.map((rt) => rt.tileName)),
-            ];
-            return [...new Set([...elements, ...allSpellElements])];
-          },
-          [],
-        );
-        const tilesFromSpells = elementsFromSpells
-          .map((element) => {
-            return range(
-              TOTAL_TILE_NUM / elementsFromSpells.length,
-              element,
-            ).map((el) => {
-              return {
-                name: el,
-                weight: 100,
-                type: "ELEMENTAL",
-                fromLine: false,
-              } as Option;
-            });
-          })
-          .flat();
+        // const TOTAL_TILE_NUM = 24;
+        // const elementsFromSpells = spells.reduce<string[]>(
+        //   (elements, spell) => {
+        //     const allSpellElements = [
+        //       ...new Set(spell.requiredTiles.map((rt) => rt.tileName)),
+        //     ];
+        //     return [...new Set([...elements, ...allSpellElements])];
+        //   },
+        //   [],
+        // );
+        // const tilesFromSpells = elementsFromSpells
+        //   .map((element) => {
+        //     return range(
+        //       TOTAL_TILE_NUM / elementsFromSpells.length,
+        //       element,
+        //     ).map((el) => {
+        //       return {
+        //         name: el,
+        //         weight: 100,
+        //         type: "ELEMENTAL",
+        //         fromLine: false,
+        //       } as Option;
+        //     });
+        //   })
+        //   .flat();
+        //
+        // // const myBoard = initBoard(4, 4, newSpell, defaultDeck);
+        // const myBoard = initBoard(
+        //   4,
+        //   4,
+        //   // allSpawns,
+        //   // allSpawns,
+        //   // newSpell, // TODO: remove this just one spell here
+        //   // allSpawns
+        //   //   .map((st) =>
+        //   //     Array.from({ length: 25 }, () => ({
+        //   //       ...st,
+        //   //     })),
+        //   //   )
+        //   //   .flat(),
+        //   tilesFromSpells,
+        // );
 
-        // const myBoard = initBoard(4, 4, newSpell, defaultDeck);
-        const myBoard = initBoard(
-          4,
-          4,
-          // allSpawns,
-          // allSpawns,
-          // newSpell, // TODO: remove this just one spell here
-          // allSpawns
-          //   .map((st) =>
-          //     Array.from({ length: 25 }, () => ({
-          //       ...st,
-          //     })),
-          //   )
-          //   .flat(),
-          tilesFromSpells,
-        );
-        state.boards = [myBoard];
-        state.choosing = false;
+        // state.boards = [myBoard];
+        state.boards = [];
+        state.choosing_old = false;
+        state.choosingSpells = true;
         state.player = {
           maxHealth: 50,
           currentHealth: 50,
           knownSpells: spells,
-          chosenSpells: spells.map((s) => ({
-            spell: s,
-            complete: s.requiredTiles.map(() => false),
-          })),
-          baseTileBag: tilesFromSpells,
+          // chosenSpells: spells.map((s) => ({
+          //   spell: s,
+          //   complete: s.requiredTiles.map(() => false),
+          // })),
+          chosenSpells: [],
+          // baseTileBag: tilesFromSpells,
+          baseTileBag: [], // will be filled in after choosing spells
           kind: "player",
           id: "PLAYER",
           name: "Sir Bearington",
         };
         state.waves = [
-          [createEnemy(GolbinEnemy), createEnemy(GolbinEnemy)],
+          [createEnemy(GolbinEnemy, 0, "a"), createEnemy(GolbinEnemy, 1, "z")],
           [
-            createEnemy(GolbinEnemy),
-            createEnemy(GolbinEnemy),
-            createEnemy(GolbinEnemy),
+            createEnemy(GolbinEnemy, 0, "a"),
+            createEnemy(GolbinEnemy, 1, "j"),
+            createEnemy(GolbinEnemy, 2, "z"),
           ],
         ];
         state.activeWave = 0;
 
+        state.effects = {};
+        state.effectsByTarget = {};
+        // TODO: initiate enemy ability cooldowns here
+        state.enemyAbilityCD = {};
         state.entities = {
           [state.player.id]: state.player,
           ...state.waves[state.activeWave].reduce(
@@ -1167,6 +1259,7 @@ export const useGameStore = create<GameState & Actions>()(
                 currentHealth: en.currentHealth,
                 abilities: en.abilities,
                 loot: en.loot,
+                position: en.position,
               } as Enemy;
               return acc;
             },

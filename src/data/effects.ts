@@ -10,7 +10,7 @@ import {
   Player,
 } from "../state";
 import { uniqueId } from "../helpers/uniqueId.ts";
-import { Enemy } from "./enemies.ts";
+import { Enemy, isEnemy } from "./enemies.ts";
 import shuffleArray from "../helpers/shuffleArray.ts";
 
 function getEffectsOn(state: GameState, targetId: EntityId): EffectInstance[] {
@@ -84,6 +84,7 @@ function tryResolveDeath(state: GameState, evt: DeathEvent): boolean {
 
     if (state.activeWave > state.waves.length - 1) {
       window.alert("w00t you beat the game!");
+      return true;
     } else {
       state.shopping = true;
       state.defeatedEnemies = [];
@@ -97,6 +98,8 @@ function tryResolveDeath(state: GameState, evt: DeathEvent): boolean {
     boardState.tiles = [];
     boardState.mana = 0;
     boardState.numberOfSlides = 0;
+    state.effects = {};
+    state.effectsByTarget = {};
     // for each player spell, set its completions to false.
     state.player.chosenSpells.forEach((spell) => {
       spell.complete = spell.spell.requiredTiles.map(() => false);
@@ -114,6 +117,7 @@ function tryResolveDeath(state: GameState, evt: DeathEvent): boolean {
             currentHealth: en.currentHealth,
             abilities: en.abilities,
             loot: en.loot,
+            position: en.position,
           } as Enemy;
           return acc;
         },
@@ -136,7 +140,7 @@ export function addEffectInternal(
     priority?: number;
     stacking?: "add" | "refresh" | "replace";
   },
-): EffectId {
+) {
   // Stacking policy: operate on an existing effect of same name+target if found
   const existingId = (state.effectsByTarget[target] ?? []).find(
     (id) => state.effects[id]?.name === name,
@@ -170,6 +174,10 @@ export function addEffectInternal(
   }
 
   const id = uniqueId();
+  console.log("[addEffectInternal] before:", {
+    len: Object.keys(state.effects).length,
+  });
+
   const eff: EffectInstance = {
     id,
     name,
@@ -183,6 +191,12 @@ export function addEffectInternal(
   };
   state.effects[id] = eff;
   (state.effectsByTarget[target] ??= []).push(id);
+  console.log("[addEffectInternal] after:", {
+    id,
+    effects: state.effects,
+    byTarget: state.effectsByTarget[target],
+  });
+
   return id;
 }
 
@@ -241,9 +255,32 @@ export function dealDamageInternal(
 // Slide progression: tick hooks then expire time-based effects
 export function commitSlideInternal(state: GameState) {
   // state.slide += 1;
+  const boardState = state.boards[0];
+  boardState.numberOfSlides++;
 
   // Snapshot IDs to be safe if effects are removed during iteration
   const ids = Object.keys(state.effects);
+
+  // have enemies do their abilities
+  const enemies = Object.values(state.entities).filter(isEnemy);
+  for (const enemy of enemies) {
+    const cooldowns = ensureEnemyCD(state, enemy);
+
+    // frozen!
+    if (abilityTickSuppressed(state, enemy.id)) continue;
+
+    enemy.abilities.forEach((ability, abIx) => {
+      cooldowns[abIx] -= 1;
+
+      if (cooldowns[abIx] <= 0) {
+        // if (boardState.numberOfSlides % ability.slidesToActivate === 0) {
+        ability.stateUpdater(state, { casterId: enemy.id, abilityIndex: abIx });
+        console.log("activated enemy ability", ability);
+        // Reset the cooldown (simple periodic)
+        cooldowns[abIx] = ability.slidesToActivate;
+      }
+    });
+  }
 
   // Tick onSlideEnd
   for (const id of ids) {
@@ -259,7 +296,7 @@ export function commitSlideInternal(state: GameState) {
     if (
       eff &&
       eff.expiresAtSlide != null &&
-      state.boards[0].numberOfSlides >= eff.expiresAtSlide
+      boardState.numberOfSlides >= eff.expiresAtSlide
     ) {
       effectDefs[eff.name]?.onExpire?.(state, eff);
       removeEffectInternal(state, id);
@@ -285,10 +322,14 @@ export const effectDefs: Record<EffectName, EffectDef> = {
         removeEffectInternal(state, self.id);
       }
     },
+    label: "Block",
+    short: "BLK",
+    getValue: (self) => Math.max(0, self.data?.amount ?? 0),
+    format: (self) => `Block ${Math.max(0, self.data?.amount ?? 0)}`,
   },
 
   Poison: {
-    // Ticks at the end of each slide (StS-like timing for this grid game)
+    // Ticks at the end of each slide (StS-like timing)
     onSlideEnd(state, self) {
       let stacks: number = Math.max(0, Math.floor(self.data.stacks ?? 0));
       if (stacks <= 0) {
@@ -306,5 +347,79 @@ export const effectDefs: Record<EffectName, EffectDef> = {
         removeEffectInternal(state, self.id);
       }
     },
+    label: "Poison",
+    short: "PSN",
+    getValue: (self) => Math.max(0, self.data?.stacks ?? 0),
+    format: (self) => `Poison ${Math.max(0, self.data?.stacks ?? 0)}`,
+  },
+
+  Burn: {
+    // Deals a fixed amount of damage at the end of each slide, then expires.
+    onSlideEnd(state, self) {
+      const amount: number = Math.max(0, Math.floor(self.data.amount ?? 0));
+      if (amount <= 0) {
+        removeEffectInternal(state, self.id);
+        return;
+      }
+
+      // Deal amount damage
+      dealDamageInternal(state, self.target, amount);
+
+      if (
+        state.boards[0].numberOfSlides >= (self?.expiresAtSlide ?? Infinity)
+      ) {
+        removeEffectInternal(state, self.id);
+      }
+    },
+    label: "Burn",
+    short: "BRN",
+    getValue: (self) => Math.max(0, self.data?.amount ?? 0),
+    format: (self) => `Burn ${Math.max(0, self.data?.amount ?? 0)}`,
+  },
+
+  Freeze: {
+    label: "Freeze",
+    short: "FRZ",
+    // Don’t let this enemy’s abilities tick this slide
+    suppressAbilityTick: () => true,
+
+    // choose one timing:
+    // A) Freeze expires by your normal durationSlides/ExpiresAtSlide → no extra onSlideEnd needed
+    // B) Or, if you want stacks that decay each slide:
+    // onSlideEnd(state, self) {
+    //   self.data.stacks = Math.max(0, (self.data.stacks ?? 0) - 1);
+    //   if (self.data.stacks <= 0) removeEffectInternal(state, self.id);
+    // },
   },
 };
+
+function ensureEnemyCD(state: GameState, enemy: Enemy): number[] {
+  let cds = state.enemyAbilityCD[enemy.id];
+  if (!cds || cds.length !== enemy.abilities.length) {
+    cds = enemy.abilities.map((a) => a.slidesToActivate);
+    state.enemyAbilityCD[enemy.id] = cds;
+  }
+  return cds;
+}
+
+function abilityTickSuppressed(state: GameState, enemyId: EntityId): boolean {
+  for (const eff of getEffectsOn(state, enemyId)) {
+    const def = effectDefs[eff.name];
+    if (!def) continue;
+    if (typeof def.suppressAbilityTick === "function") {
+      if (def.suppressAbilityTick(state, eff, enemyId)) return true;
+    } else if (def.suppressAbilityTick) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function formatEffect(self: EffectInstance, state?: GameState): string {
+  const def = effectDefs[self.name];
+  if (!def) return self.name;
+  if (def.format) return def.format(self, state);
+  const label = def.label ?? self.name;
+  const v = def.getValue?.(self);
+  return v != null ? `${label} ${v}` : label;
+}

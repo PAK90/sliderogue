@@ -7,6 +7,7 @@ export interface Enemy extends Entity {
   abilities: Ability[];
   loot: { type: string; quantity: number }[]; // yes I know; it's because I don't know what loot will be yet
   // buffs: Buff[];
+  position: number;
 }
 
 export const isEnemy = (e: Player | Enemy): e is Enemy => e.kind === "enemy";
@@ -18,11 +19,11 @@ export const GolbinEnemy = {
   abilities: [basicDealDamageAbility],
   name: "Golbin",
   id: "-1",
-  buffs: [],
+  // buffs: [],
   loot: [{ type: "GOLD", quantity: 3 }],
   kind: "enemy",
 };
 
-export function createEnemy(enemy: Enemy) {
-  return { ...enemy, id: uniqueId() };
+export function createEnemy(enemy: Enemy, position: number, suffix?: string) {
+  return { ...enemy, id: uniqueId(), position, name: enemy.name + suffix };
 }

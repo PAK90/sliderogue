@@ -4,7 +4,7 @@ import SpellRender from "./SpellRender.tsx";
 import { useState } from "react";
 
 const GoalChooserDialog = () => {
-  const { choosing, setChoosing, openShopping } = useGameStore();
+  const { choosing_old, setChoosing, openShopping } = useGameStore();
   // TODO: make this not fixed to 0.
   // const activeSpell = boards[0]?.availableSpells[boards[0]?.activeSpell];
 
@@ -34,7 +34,7 @@ const GoalChooserDialog = () => {
   return (
     <>
       <div
-        hidden={!choosing}
+        hidden={!choosing_old}
         className={`
           ${isTransparent ? "opacity-20" : "opacity-100"}
           bg-gray-200 shadow-2xl absolute top-1/4 left-1/4 w-1/2 h-fit z-20

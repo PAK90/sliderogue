@@ -5,6 +5,7 @@ import Board from "./Board.tsx";
 // import GoalChooserDialog from "./GoalChooserDialog.tsx";
 import ShopDialog from "./ShopDialog.tsx";
 import DeckViewDialog from "./DeckViewDialog.tsx";
+import SpellChoosingDialog from "./SpellChoosingDialog.tsx";
 
 const GameArea = () => {
   const { move, resetGame, boards, castReadySpells } = useGameStore();
@@ -66,6 +67,7 @@ const GameArea = () => {
       {/*  })}*/}
       {/*<GoalChooserDialog />*/}
       <ShopDialog />
+      <SpellChoosingDialog />
       <DeckViewDialog />
       <div className="flex">
         {/*<div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${gold}`}</div>*/}

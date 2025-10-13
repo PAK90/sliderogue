@@ -1,23 +1,22 @@
-import { WritableDraft } from "immer";
-import { Actions, GameState } from "../state";
+import { Draft } from "immer";
+import { EntityId, GameState } from "../state";
 import { dealDamageInternal } from "./effects.ts";
 
 export type Ability = {
   slidesToActivate: number;
   target: "PLAYER" | "ALLY"; // in this case player = player and ally = other monsters
   stateUpdater: (
-    state: WritableDraft<GameState & Actions>,
-  ) => WritableDraft<GameState & Actions>;
+    state: Draft<GameState>,
+    ctx: { casterId: EntityId; abilityIndex: number },
+  ) => void;
   name: string;
 };
 
 export const basicDealDamageAbility: Ability = {
   slidesToActivate: 5,
   target: "PLAYER",
-  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
-    // state.player.currentHealth -= 3;
+  stateUpdater: (state: Draft<GameState>) => {
     dealDamageInternal(state, "PLAYER", 3);
-    return state;
   },
   name: "I Whack You For 3!",
 };

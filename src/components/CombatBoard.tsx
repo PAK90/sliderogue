@@ -6,8 +6,6 @@ import { formatEffect } from "../data/effects.ts";
 
 const CombatBoard = () => {
   const {
-    // player,
-    boards,
     targeting,
     chosenTargets,
     setChosenTargets,
@@ -19,8 +17,6 @@ const CombatBoard = () => {
     effectsByTarget,
     enemyAbilityCD,
   } = useGameStore();
-  const boardState = boards[0];
-  const { numberOfSlides } = boardState;
   const enemies = Object.values(entities)
     .filter(isEnemy)
     .sort((a, b) => a.position - b.position);

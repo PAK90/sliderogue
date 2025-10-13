@@ -222,6 +222,7 @@ function runPassivesModifyIncoming(
   targetId: EntityId,
   ctx: DamageCtx,
 ) {
+  console.log(targetId, ctx);
   // If you want only allies’ passives, iterate all entities and let passives decide.
   const all = Object.values(state.entities);
   // Optionally order by priority

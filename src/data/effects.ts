@@ -5,6 +5,7 @@ import {
   EffectId,
   EffectInstance,
   EffectName,
+  Entity,
   EntityId,
   GameState,
   Player,
@@ -68,6 +69,9 @@ function tryResolveDeath(state: GameState, evt: DeathEvent): boolean {
     // const enemy = dead as Enemy;
     // TODO: push loot to inventory/state here
     // state.loot.push(...enemy.loot)
+  } else {
+    // window.alert("whoops you ded");
+    return true;
   }
 
   delete state.entities[evt.entityId];
@@ -116,6 +120,7 @@ function tryResolveDeath(state: GameState, evt: DeathEvent): boolean {
             maxHealth: en.maxHealth,
             currentHealth: en.currentHealth,
             abilities: en.abilities,
+            passiveAbilities: en.passiveAbilities,
             loot: en.loot,
             position: en.position,
           } as Enemy;
@@ -212,6 +217,28 @@ export function removeEffectInternal(state: GameState, id: EffectId) {
   delete state.effects[id];
 }
 
+function runPassivesModifyIncoming(
+  state: GameState | import("immer").Draft<GameState>,
+  targetId: EntityId,
+  ctx: DamageCtx,
+) {
+  // If you want only allies’ passives, iterate all entities and let passives decide.
+  const all = Object.values(state.entities);
+  // Optionally order by priority
+  const sources = all
+    .filter(
+      (e: Entity) =>
+        e?.kind === "enemy" && (e as Enemy).passiveAbilities?.length,
+    )
+    .flatMap((e) => (e as Enemy).passiveAbilities!.map((p) => ({ e, p })))
+    .sort((a, b) => (b.p.priority ?? 0) - (a.p.priority ?? 0));
+
+  for (const { e, p } of sources) {
+    p.modifyIncomingDamage?.(state, e.id, ctx);
+    if (ctx.amount <= 0) break;
+  }
+}
+
 // Core damage application (internal). Call through actions for UI logging etc.
 export function dealDamageInternal(
   state: GameState,
@@ -220,6 +247,11 @@ export function dealDamageInternal(
   tags?: string[],
 ) {
   const ctx: DamageCtx = { target: targetId, amount: base, tags };
+
+  // 1) PASSIVES first (global, always-on)
+  runPassivesModifyIncoming(state, targetId, ctx);
+
+  // 2) TARGET effects
   for (const eff of getEffectsOn(state, targetId)) {
     effectDefs[eff.name]?.modifyIncomingDamage?.(state, eff, ctx);
     if (ctx.amount <= 0) break;

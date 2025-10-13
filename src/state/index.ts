@@ -11,7 +11,12 @@ import { Item } from "../data/items.ts";
 import { chooseEmptyTilePosition } from "../helpers/chooseEmptyTilePosition.ts";
 import { uniqueId } from "../helpers/uniqueId.ts";
 import shuffleArray from "../helpers/shuffleArray.ts";
-import { createEnemy, Enemy, GolbinEnemy } from "../data/enemies.ts";
+import {
+  createEnemy,
+  Enemy,
+  GolbinEnemy,
+  ShielderEnemy,
+} from "../data/enemies.ts";
 import { BASE_MANA_COST, BASE_MANA_MULTIPLIER } from "../data/constants.ts";
 import range from "../helpers/range.ts";
 import {
@@ -246,8 +251,8 @@ export const useGameStore = create<GameState & Actions>()(
     waves: [
       [createEnemy(GolbinEnemy, 0, "a"), createEnemy(GolbinEnemy, 1, "z")],
       [
-        createEnemy(GolbinEnemy, 0, "a"),
-        createEnemy(GolbinEnemy, 1, "j"),
+        createEnemy(ShielderEnemy, 0, ""),
+        createEnemy(GolbinEnemy, 1, "a"),
         createEnemy(GolbinEnemy, 2, "z"),
       ],
     ],
@@ -1236,8 +1241,8 @@ export const useGameStore = create<GameState & Actions>()(
         state.waves = [
           [createEnemy(GolbinEnemy, 0, "a"), createEnemy(GolbinEnemy, 1, "z")],
           [
-            createEnemy(GolbinEnemy, 0, "a"),
-            createEnemy(GolbinEnemy, 1, "j"),
+            createEnemy(ShielderEnemy, 0, ""),
+            createEnemy(GolbinEnemy, 1, "a"),
             createEnemy(GolbinEnemy, 2, "z"),
           ],
         ];
@@ -1258,6 +1263,7 @@ export const useGameStore = create<GameState & Actions>()(
                 maxHealth: en.maxHealth,
                 currentHealth: en.currentHealth,
                 abilities: en.abilities,
+                passiveAbilities: en.passiveAbilities,
                 loot: en.loot,
                 position: en.position,
               } as Enemy;

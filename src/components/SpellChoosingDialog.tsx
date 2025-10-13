@@ -18,6 +18,9 @@ const SpellChoosingDialog = () => {
     }
   };
 
+  // in the renderer we have to hide the spell list after choosing so it doesn't
+  // interfere with rendering them in gameplay... a weird FIXME bug here.
+
   return (
     <>
       <div
@@ -25,18 +28,24 @@ const SpellChoosingDialog = () => {
         className="bg-gray-200 shadow-2xl absolute top-1/4 left-1/4 w-1/2 h-fit z-20"
       >
         {`Choose 2 spells to start with`}
-        {spells.map((spell, ix) => (
-          <div onClick={() => handleSpellClick(ix)} className="cursor-pointer">
-            <SpellRender
-              spellData={{
-                spell,
-                complete: spell.requiredTiles.map(() => false),
-              }}
-              spellIndex={ix}
-              castable={chosenSpellIndices.includes(ix)}
-            />
-          </div>
-        ))}
+        {!choosingSpells
+          ? []
+          : spells.map((spell, ix) => (
+              <div
+                key={ix}
+                onClick={() => handleSpellClick(ix)}
+                className="cursor-pointer"
+              >
+                <SpellRender
+                  spellData={{
+                    spell,
+                    complete: spell.requiredTiles.map(() => false),
+                  }}
+                  spellIndex={ix}
+                  castable={chosenSpellIndices.includes(ix)}
+                />
+              </div>
+            ))}
         <button
           disabled={chosenSpellIndices.length !== 2}
           onClick={chooseSpells}

@@ -413,18 +413,18 @@ export const useGameStore = create<GameState & Actions>()(
             window.alert("w00t you beat the game!");
           } else {
             // drop some tasty loot
-            state.defeatedEnemies.forEach((defeatedEnemy) => {
-              // TODO; genericise this
-              // boardState.gold += defeatedEnemy.loot.reduce(
-              //   (totalGold, loot) => {
-              //     if (loot.type === "GOLD") {
-              //       totalGold += loot.quantity;
-              //     }
-              //     return totalGold;
-              //   },
-              //   0,
-              // );
-            });
+            // state.defeatedEnemies.forEach((defeatedEnemy) => {
+            //   // TODO; genericise this
+            //   // boardState.gold += defeatedEnemy.loot.reduce(
+            //   //   (totalGold, loot) => {
+            //   //     if (loot.type === "GOLD") {
+            //   //       totalGold += loot.quantity;
+            //   //     }
+            //   //     return totalGold;
+            //   //   },
+            //   //   0,
+            //   // );
+            // });
             state.shopping = true;
             state.defeatedEnemies = [];
           }

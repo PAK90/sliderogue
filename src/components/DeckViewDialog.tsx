@@ -1,7 +1,7 @@
 import { useGameStore } from "../state";
 import { Option } from "../helpers/chooseWeightedOption.ts";
 
-const GoalChooserDialog = () => {
+const DeckViewDialog = () => {
   const {
     deckLooking,
     toggleDeckView,
@@ -112,4 +112,4 @@ const GoalChooserDialog = () => {
   );
 };
 
-export default GoalChooserDialog;
+export default DeckViewDialog;

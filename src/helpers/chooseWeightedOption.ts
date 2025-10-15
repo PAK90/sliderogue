@@ -1,4 +1,5 @@
-import { TileType, TileUpgrades } from "../state";
+import { TileType } from "../state";
+import { TileUpgrades } from "../data/upgrades.ts";
 
 export type Option = {
   weight: number;

@@ -6,7 +6,12 @@ import { immer } from "zustand/middleware/immer";
 import { Option } from "../helpers/chooseWeightedOption.ts";
 // import { elemental4Tiles, elementalTiles } from "../data/tiles.ts";
 import { Spell, spells } from "../data/spells.ts";
-import { Upgrade } from "../data/upgrades.ts";
+import {
+  TileUpgrades,
+  Upgrade,
+  UpgradeDominance,
+  TileUpgradesDominance,
+} from "../data/upgrades.ts";
 import { Item } from "../data/items.ts";
 import { chooseEmptyTilePosition } from "../helpers/chooseEmptyTilePosition.ts";
 import { uniqueId } from "../helpers/uniqueId.ts";
@@ -46,7 +51,6 @@ export type Coordinate = {
 };
 
 export type TileType = "WEAPON" | "ENEMY" | "NUMBER" | "ELEMENTAL";
-export type TileUpgrades = "GOLD" | "SILVER" | "EXPLOSIVE";
 
 export type EffectId = string;
 export type EffectName = "Block" | "Poison" | "Burn" | "Freeze";
@@ -134,6 +138,7 @@ export interface Player extends Entity {
   baseTileBag: Option[];
   // buffs: Buff[];
   kind: "player";
+  gold: number;
 }
 
 export type BoardState = {
@@ -142,7 +147,6 @@ export type BoardState = {
   boardHeight: number;
   score: number;
   mana: number;
-  gold: number;
   lines: number;
   spellsCompleted: number;
   targetScore: number;
@@ -272,6 +276,7 @@ export const useGameStore = create<GameState & Actions>()(
       kind: "player",
       id: "PLAYER",
       name: "Sir Bearington",
+      gold: 0,
     },
     imminentAnnihilations: [],
 
@@ -410,15 +415,15 @@ export const useGameStore = create<GameState & Actions>()(
             // drop some tasty loot
             state.defeatedEnemies.forEach((defeatedEnemy) => {
               // TODO; genericise this
-              boardState.gold += defeatedEnemy.loot.reduce(
-                (totalGold, loot) => {
-                  if (loot.type === "GOLD") {
-                    totalGold += loot.quantity;
-                  }
-                  return totalGold;
-                },
-                0,
-              );
+              // boardState.gold += defeatedEnemy.loot.reduce(
+              //   (totalGold, loot) => {
+              //     if (loot.type === "GOLD") {
+              //       totalGold += loot.quantity;
+              //     }
+              //     return totalGold;
+              //   },
+              //   0,
+              // );
             });
             state.shopping = true;
             state.defeatedEnemies = [];
@@ -574,24 +579,24 @@ export const useGameStore = create<GameState & Actions>()(
         boardState.tiles = draggedTiles.reduce((tileState, draggedTile) => {
           const dtIx = tileState.findIndex((t) => t.id === draggedTile.id);
           if (dtIx !== -1) {
-            if (tileState[dtIx].upgrades.includes("EXPLOSIVE")) {
-              // delete the tiles above, below and to either side of this one too
-              [
-                [1, 0],
-                [-1, 0],
-                [0, 1],
-                [0, -1],
-              ].forEach((d) => {
-                const adjTile = tileState.find(
-                  (t) =>
-                    t.position.x === tileState[dtIx].position.x + d[0] &&
-                    t.position.y === tileState[dtIx].position.y + d[1],
-                );
-                if (adjTile) {
-                  toDeleteTiles.push(adjTile);
-                }
-              });
-            }
+            // if (tileState[dtIx].upgrades.includes("EXPLOSIVE")) {
+            //   // delete the tiles above, below and to either side of this one too
+            //   [
+            //     [1, 0],
+            //     [-1, 0],
+            //     [0, 1],
+            //     [0, -1],
+            //   ].forEach((d) => {
+            //     const adjTile = tileState.find(
+            //       (t) =>
+            //         t.position.x === tileState[dtIx].position.x + d[0] &&
+            //         t.position.y === tileState[dtIx].position.y + d[1],
+            //     );
+            //     if (adjTile) {
+            //       toDeleteTiles.push(adjTile);
+            //     }
+            //   });
+            // }
             tileState.splice(dtIx, 1);
           }
           return tileState;
@@ -639,10 +644,10 @@ export const useGameStore = create<GameState & Actions>()(
         // if we exceed the points total, give gold
         if (boardState.score >= boardState.targetScore) {
           // give 1 gold per remaining tile on the board; 3 if it's a gold tile.
-          boardState.gold += boardState.tiles.reduce(
-            (total, tile) => total + (tile.upgrades.includes("GOLD") ? 3 : 1),
-            0,
-          );
+          // boardState.gold += boardState.tiles.reduce(
+          //   (total, tile) => total + (tile.upgrades.includes("GOLD") ? 3 : 1),
+          //   0,
+          // );
           // increase the target score
           boardState.targetScore = Math.floor(
             boardState.targetScore * targetIncrease,
@@ -830,7 +835,7 @@ export const useGameStore = create<GameState & Actions>()(
         // const timesUsed = state.boards[0].usedUpgrades.filter(
         //   (uu) => uu === upgrade.name,
         // ).length;
-        state.boards[0].gold -= upgrade.cost;
+        state.player.gold -= upgrade.cost;
         // take note of the upgrade used, so we can increase its cost later.
         if (upgrade.type === "ITEM") {
           state.boards[0].ownedItems.push(upgrade.name);
@@ -923,12 +928,30 @@ export const useGameStore = create<GameState & Actions>()(
                   // move the tile that's about to be deleted so that it looks good
                   tileHere.position = positions.next;
 
-                  // combine the upgrades on both tiles
+                  // combine the upgrades on both tiles.
+                  // if the upgrade has upgradeDominance of DOMINANT, then if tile A has it and tile B doesn't,
+                  // then the resulting tile will have it.
+                  // if the upgrade has upgradeDominance of RECESSIVE, then if tile A has it and tile B doesn't,
+                  // then the resulting tile will not have it.
                   const combinedUpgrades = Array.from(
                     new Set(
                       tileHere.upgrades.concat(nextPotentialTile.upgrades),
                     ),
                   );
+                  combinedUpgrades.filter((upgrade) => {
+                    if (
+                      UpgradeDominance[upgrade] ===
+                      TileUpgradesDominance.DOMINANT
+                    )
+                      return true;
+                    else {
+                      // must be recessive, so return true/false depending on whether the upgrade is on both tiles.
+                      return (
+                        tileHere.upgrades.includes(upgrade) &&
+                        nextPotentialTile.upgrades.includes(upgrade)
+                      );
+                    }
+                  });
 
                   // delete the merging tiles
                   const nextTileIx = boardState.tiles.findIndex(
@@ -1000,7 +1023,12 @@ export const useGameStore = create<GameState & Actions>()(
 
                   // update the score... and mana.
                   // state.boards[boardIndex].score += tileHere.value;
-                  boardState.mana += tileHere.value;
+                  const manaMultiplier = combinedUpgrades.includes("SILVER")
+                    ? 1.2
+                    : 1;
+                  boardState.mana += Math.floor(
+                    tileHere.value * manaMultiplier,
+                  );
 
                   // if the tile was used for a spell, remove it
                   if (satisfiedTile) {
@@ -1170,56 +1198,6 @@ export const useGameStore = create<GameState & Actions>()(
 
     resetGame: () => {
       set((state) => {
-        // const newSpell = rollActiveSpellData();
-        // const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
-        //   return [...mergedSpawns, ...spell.spawns];
-        // }, []);
-        // we want a fixed number of tiles, split between whichever elements make up the chosen spells
-        // for now these tiles will all be 2-value.
-        // const TOTAL_TILE_NUM = 24;
-        // const elementsFromSpells = spells.reduce<string[]>(
-        //   (elements, spell) => {
-        //     const allSpellElements = [
-        //       ...new Set(spell.requiredTiles.map((rt) => rt.tileName)),
-        //     ];
-        //     return [...new Set([...elements, ...allSpellElements])];
-        //   },
-        //   [],
-        // );
-        // const tilesFromSpells = elementsFromSpells
-        //   .map((element) => {
-        //     return range(
-        //       TOTAL_TILE_NUM / elementsFromSpells.length,
-        //       element,
-        //     ).map((el) => {
-        //       return {
-        //         name: el,
-        //         weight: 100,
-        //         type: "ELEMENTAL",
-        //         fromLine: false,
-        //       } as Option;
-        //     });
-        //   })
-        //   .flat();
-        //
-        // // const myBoard = initBoard(4, 4, newSpell, defaultDeck);
-        // const myBoard = initBoard(
-        //   4,
-        //   4,
-        //   // allSpawns,
-        //   // allSpawns,
-        //   // newSpell, // TODO: remove this just one spell here
-        //   // allSpawns
-        //   //   .map((st) =>
-        //   //     Array.from({ length: 25 }, () => ({
-        //   //       ...st,
-        //   //     })),
-        //   //   )
-        //   //   .flat(),
-        //   tilesFromSpells,
-        // );
-
-        // state.boards = [myBoard];
         state.boards = [];
         state.choosing_old = false;
         state.choosingSpells = true;
@@ -1227,16 +1205,12 @@ export const useGameStore = create<GameState & Actions>()(
           maxHealth: 50,
           currentHealth: 50,
           knownSpells: spells,
-          // chosenSpells: spells.map((s) => ({
-          //   spell: s,
-          //   complete: s.requiredTiles.map(() => false),
-          // })),
           chosenSpells: [],
-          // baseTileBag: tilesFromSpells,
           baseTileBag: [], // will be filled in after choosing spells
           kind: "player",
           id: "PLAYER",
           name: "Sir Bearington",
+          gold: 0,
         };
         state.waves = [
           [createEnemy(GolbinEnemy, 0, "a"), createEnemy(GolbinEnemy, 1, "z")],
@@ -1333,7 +1307,6 @@ const initBoard = (
   const newBoardState: BoardState = {
     score: 0,
     mana: 0,
-    gold: 0,
     lines: 99,
     targetScore: INITIAL_TARGET,
     spellsCompleted: 0,

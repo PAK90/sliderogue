@@ -240,7 +240,7 @@ const waterFreezeSpell: Spell = {
 const airSwapSpell: Spell = {
   name: "Dance of Air",
   description:
-    "Sends the front enemy to the back and deals [TILEVALUE / 8] damage to them",
+    "Sends the front enemy to the back and deals [TILEVALUE / 3] damage to them",
   requiredTiles: [
     { tileName: airTile.name, tileValue: "x" },
     { tileName: airTile.name, tileValue: "x" },
@@ -261,7 +261,7 @@ const airSwapSpell: Spell = {
       0,
     );
     console.log("targets ", targets);
-    dealDamageInternal(state, targets[0].id, draggedValue / 8);
+    dealDamageInternal(state, targets[0].id, Math.floor(draggedValue / 3));
     if (targets.length > 1) {
       const frontEnemy = targets[0];
       const lastEnemy = targets[targets.length - 1];

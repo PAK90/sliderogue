@@ -6,6 +6,15 @@ import { Actions, GameState } from "../state";
 // import { tile8 } from "./tiles.ts";
 
 export type UpgradeType = "BOARD" | "TILE";
+export type TileUpgrades = "SILVER";
+export enum TileUpgradesDominance {
+  RECESSIVE = "RECESSIVE",
+  DOMINANT = "DOMINANT",
+}
+export const UpgradeDominance: Record<TileUpgrades, TileUpgradesDominance> = {
+  SILVER: TileUpgradesDominance.RECESSIVE,
+};
+
 export type Upgrade = {
   name: string;
   description: string;
@@ -55,22 +64,11 @@ const heightUpgrade: Upgrade = {
 
 const silverUpgrade: Upgrade = {
   name: "Silver Engraving",
-  description:
-    "Upgrades up to two tiles to be Silver." +
-    "\nSilver tiles cost 50% less mana to combine",
+  description: `{RECESSIVE} (When merged with a non-Silver tile, it won't be Silver.)
+    Upgrades up to two tiles to be Silver.\n
+    Silver tiles generate 20% more mana when merged.`,
   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
     const board = state.boards[0];
-    // const selectedTiles = board.selectedTiles;
-    // selectedTiles.forEach((selTile) => {
-    //   const tile = board.tiles.find((tile) => tile.id === selTile.id);
-    //   if (tile) {
-    //     tile.upgrades.push("SILVER");
-    //   } else {
-    //     throw Error(
-    //       "Somehow have a selected tile that has no equivalent real tile.",
-    //     );
-    //   }
-    // });
     const { selectedDeckTiles } = board;
     const { player } = state;
     selectedDeckTiles.forEach((tileIx) => {
@@ -81,18 +79,10 @@ const silverUpgrade: Upgrade = {
         player.baseTileBag[tileIx].upgrades = ["SILVER"];
       }
     });
-    // FIXME: this is duplicated too many places...
-    // const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
-    //   return [...mergedSpawns, ...spell.spawns];
-    // }, []);
-    // const deckFromSpawns = allSpawns
-    //   .map((st) => Array.from({ length: 25 }, () => ({ ...st })))
-    //   .flat();
-    // board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));
     return state;
   },
   type: "TILE",
-  cost: 2,
+  cost: 5,
   tier: 2,
   weight: 100,
   costMultiplier: 2,
@@ -100,42 +90,21 @@ const silverUpgrade: Upgrade = {
   maxTiles: 2,
 };
 
-const goldUpgrade: Upgrade = {
-  name: "Gold Plating",
-  description:
-    "Upgrades up to two tiles to be Gold." +
-    "\nGold tiles are worth 3 gold at the end of a round (instead of 1)",
+const rankUpgrade: Upgrade = {
+  name: "Upgrade Tile Rank",
+  description: `Pick up to 4 tiles to upgrade one rank\n
+  (e.g. 2 -> 4, 4 -> 8, etc.)`,
   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
-    const board = state.boards[0];
-    // const selectedTiles = board.selectedTiles;
-    // selectedTiles.forEach((selTile) => {
-    //   const tile = board.tiles.find((tile) => tile.id === selTile.id);
-    //   if (tile) {
-    //     tile.upgrades.push("GOLD");
-    //   } else {
-    //     throw Error(
-    //       "Somehow have a selected tile that has no equivalent real tile.",
-    //     );
-    //   }
-    // });
-    const { selectedDeckTiles } = board;
+    const { selectedDeckTiles } = state.boards[0];
     const { player } = state;
     selectedDeckTiles.forEach((tileIx) => {
-      const potentialUpgrades = player.baseTileBag[tileIx].upgrades;
-      if (potentialUpgrades) {
-        potentialUpgrades.push("GOLD");
-      } else {
-        board.upgradedDeck[tileIx].upgrades = ["GOLD"];
+      const tile = player.baseTileBag[tileIx];
+      // const value = tile.value;
+      if (!tile.value) {
+        tile.value = 2;
       }
+      tile.value *= 2;
     });
-    // FIXME: this is duplicated too many places...
-    // const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
-    //   return [...mergedSpawns, ...spell.spawns];
-    // }, []);
-    // const deckFromSpawns = allSpawns
-    //   .map((st) => Array.from({ length: 25 }, () => ({ ...st })))
-    //   .flat();
-    // board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));
     return state;
   },
   type: "TILE",
@@ -144,8 +113,36 @@ const goldUpgrade: Upgrade = {
   weight: 100,
   costMultiplier: 2,
   minTiles: 1,
-  maxTiles: 2,
+  maxTiles: 4,
 };
+
+// const goldUpgrade: Upgrade = {
+//   name: "Gold Plating",
+//   description:
+//     "Upgrades up to two tiles to be Gold." +
+//     "\nGold tiles are worth 3 gold at the end of a round (instead of 1)",
+//   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+//     const board = state.boards[0];
+//     const { selectedDeckTiles } = board;
+//     const { player } = state;
+//     selectedDeckTiles.forEach((tileIx) => {
+//       const potentialUpgrades = player.baseTileBag[tileIx].upgrades;
+//       if (potentialUpgrades) {
+//         potentialUpgrades.push("GOLD");
+//       } else {
+//         board.upgradedDeck[tileIx].upgrades = ["GOLD"];
+//       }
+//     });
+//     return state;
+//   },
+//   type: "TILE",
+//   cost: 4,
+//   tier: 2,
+//   weight: 100,
+//   costMultiplier: 2,
+//   minTiles: 1,
+//   maxTiles: 2,
+// };
 
 // const shuffle: Upgrade = {
 //   name: "Shuffle",
@@ -234,43 +231,35 @@ const goldUpgrade: Upgrade = {
 //   weight: 100,
 // };
 
-const explosiveUpgrade: Upgrade = {
-  name: "Explosive Infusion",
-  description:
-    "Upgrades up to two tiles to be Explosive." +
-    "\nExplosive tiles will remove tiles above/below/beside them when absorbed by the line." +
-    "\nTiles removed this way will not be added to the deck.",
-  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
-    const board = state.boards[0];
-    const { selectedDeckTiles } = board;
-    const { player } = state;
-    selectedDeckTiles.forEach((tileIx) => {
-      const potentialUpgrades = player.baseTileBag[tileIx].upgrades;
-      if (potentialUpgrades) {
-        potentialUpgrades.push("EXPLOSIVE");
-      } else {
-        board.upgradedDeck[tileIx].upgrades = ["EXPLOSIVE"];
-      }
-    });
-    // FIXME: this is duplicated too many places...
-    // const allSpawns = spells.reduce<Option[]>((mergedSpawns, spell) => {
-    //   return [...mergedSpawns, ...spell.spawns];
-    // }, []);
-    // const deckFromSpawns = allSpawns
-    //   .map((st) => Array.from({ length: 25 }, () => ({ ...st })))
-    //   .flat();
-    // board.usableDeck = shuffleArray(deckFromSpawns.concat(board.upgradedDeck));
-
-    return state;
-  },
-  type: "TILE",
-  cost: 1,
-  tier: 2,
-  weight: 100,
-  costMultiplier: 2,
-  minTiles: 1,
-  maxTiles: 2,
-};
+// const explosiveUpgrade: Upgrade = {
+//   name: "Explosive Infusion",
+//   description:
+//     "Upgrades up to two tiles to be Explosive." +
+//     "\nExplosive tiles will remove tiles above/below/beside them when absorbed by the line." +
+//     "\nTiles removed this way will not be added to the deck.",
+//   stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+//     const board = state.boards[0];
+//     const { selectedDeckTiles } = board;
+//     const { player } = state;
+//     selectedDeckTiles.forEach((tileIx) => {
+//       const potentialUpgrades = player.baseTileBag[tileIx].upgrades;
+//       if (potentialUpgrades) {
+//         potentialUpgrades.push("EXPLOSIVE");
+//       } else {
+//         board.upgradedDeck[tileIx].upgrades = ["EXPLOSIVE"];
+//       }
+//     });
+//
+//     return state;
+//   },
+//   type: "TILE",
+//   cost: 1,
+//   tier: 2,
+//   weight: 100,
+//   costMultiplier: 2,
+//   minTiles: 1,
+//   maxTiles: 2,
+// };
 
 export const upgrades = [
   // addEightTile,
@@ -280,6 +269,7 @@ export const upgrades = [
   // upgradeShopTile,
   // shuffle,
   silverUpgrade,
-  goldUpgrade,
-  explosiveUpgrade,
+  rankUpgrade,
+  // goldUpgrade,
+  // explosiveUpgrade,
 ];

@@ -26,7 +26,6 @@ const Board = ({
     boardWidth,
     draggedCells,
     mana,
-    gold,
     // spellsCompleted,
     selectedTiles,
     ownedItems,
@@ -156,7 +155,7 @@ const Board = ({
       {/*<div className="bg-green-200 w-fit m-1 p-0.5 rounded">*/}
       {/*  {`Patterns completed (/record): ${spellsCompleted}/${spellsCompletedRecord}`}*/}
       {/*</div>*/}
-      <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${gold}`}</div>
+      <div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Gold: ${player.gold}`}</div>
       {/*<div className="bg-amber-200 w-fit m-1 p-0.5 rounded">{`Score: ${score}/${targetScore}`}</div>*/}
       {/*<div className="bg-indigo-200 w-fit m-1 p-0.5 rounded">{`Lines left: ${lines}`}</div>*/}
       <div

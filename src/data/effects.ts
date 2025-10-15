@@ -66,11 +66,16 @@ function tryResolveDeath(state: GameState, evt: DeathEvent): boolean {
   // Example: drop loot if it's an enemy
   const dead = ent as Enemy | Player;
   if ((dead as Player | Enemy).kind === "enemy") {
-    // const enemy = dead as Enemy;
+    const enemy = dead as Enemy;
+    enemy.loot.forEach((item) => {
+      if (item.type === "GOLD") {
+        player.gold += item.quantity;
+      }
+    });
     // TODO: push loot to inventory/state here
     // state.loot.push(...enemy.loot)
   } else {
-    // window.alert("whoops you ded");
+    // player ded, return early, CombatBoard will notify user and reset game.
     return true;
   }
 

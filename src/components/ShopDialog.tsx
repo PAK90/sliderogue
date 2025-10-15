@@ -3,10 +3,16 @@ import { Upgrade, upgrades } from "../data/upgrades.ts";
 import { Item, items } from "../data/items.ts";
 
 function ShopDialog() {
-  const { shopping, closeShopping, boards, applyUpgrade, setUpgrading } =
-    useGameStore();
+  const {
+    shopping,
+    closeShopping,
+    boards,
+    applyUpgrade,
+    setUpgrading,
+    player,
+  } = useGameStore();
   if (!boards.length) return;
-  const { gold } = boards[0];
+  const { gold } = player;
 
   const upgradeDisplay = (upgrade: Upgrade | Item) => {
     const disabled = (upgrade?.cost || 0) > gold;

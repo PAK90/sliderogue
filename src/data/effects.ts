@@ -11,7 +11,13 @@ import {
   Player,
 } from "../state";
 import { uniqueId } from "../helpers/uniqueId.ts";
-import { Enemy, isEnemy } from "./enemies.ts";
+import {
+  createEnemy,
+  Enemy,
+  GolbinEnemy,
+  isEnemy,
+  ShielderEnemy,
+} from "./enemies.ts";
 import shuffleArray from "../helpers/shuffleArray.ts";
 
 function getEffectsOn(state: GameState, targetId: EntityId): EffectInstance[] {
@@ -67,13 +73,12 @@ function tryResolveDeath(state: GameState, evt: DeathEvent): boolean {
   const dead = ent as Enemy | Player;
   if ((dead as Player | Enemy).kind === "enemy") {
     const enemy = dead as Enemy;
+    // TODO: handle loot other than gold here
     enemy.loot.forEach((item) => {
       if (item.type === "GOLD") {
         player.gold += item.quantity;
       }
     });
-    // TODO: push loot to inventory/state here
-    // state.loot.push(...enemy.loot)
   } else {
     // player ded, return early, CombatBoard will notify user and reset game.
     return true;
@@ -91,9 +96,24 @@ function tryResolveDeath(state: GameState, evt: DeathEvent): boolean {
     window.alert("yay you defeated all the enemies!");
     state.activeWave++;
 
+    const INFINITE_WAVES = true;
+    const healthIncreasePerWave = 5; // in %
     if (state.activeWave > state.waves.length - 1) {
-      window.alert("w00t you beat the game!");
-      return true;
+      if (INFINITE_WAVES) {
+        const healthMultiplier =
+          (1 + healthIncreasePerWave / 100) ** state.activeWave;
+        console.log("healthMultiplier: ", healthMultiplier);
+        state.waves.push([
+          createEnemy(ShielderEnemy, 0, "", healthMultiplier),
+          createEnemy(GolbinEnemy, 1, "a", healthMultiplier),
+          createEnemy(GolbinEnemy, 2, "z", healthMultiplier),
+        ]);
+        state.shopping = true;
+        state.defeatedEnemies = [];
+      } else {
+        window.alert("w00t you beat the game!");
+        return true;
+      }
     } else {
       state.shopping = true;
       state.defeatedEnemies = [];
@@ -376,7 +396,7 @@ export const effectDefs: Record<EffectName, EffectDef> = {
       }
 
       // Deal stacks damage, bypassing Block
-      dealDamageInternal(state, self.target, stacks, ["poison", "hp_loss"]);
+      dealDamageInternal(state, self.target, stacks, ["poison", "dot"]);
 
       // Decay by 1
       stacks -= 1;
@@ -401,7 +421,7 @@ export const effectDefs: Record<EffectName, EffectDef> = {
       }
 
       // Deal amount damage
-      dealDamageInternal(state, self.target, amount);
+      dealDamageInternal(state, self.target, amount, ["dot"]);
 
       if (
         state.boards[0].numberOfSlides >= (self?.expiresAtSlide ?? Infinity)

@@ -19,7 +19,8 @@ export const ShielderPassive = (amount: number): PassiveAbility => ({
   modifyIncomingDamage(state, selfId, ctx) {
     const self = state.entities[selfId] as Enemy | undefined;
     const target = state.entities[ctx.target] as Enemy | Player | undefined;
-    if (!self || !target) return;
+    // this is only for normal damage, if it's a 'dot' tag, it should still deal damage.
+    if (!self || !target || ctx.tags?.includes("dot")) return;
 
     // Same team? (player vs enemies); tweak if you add teams later
     const sameTeam = self.kind === "enemy" && target.kind === "enemy";

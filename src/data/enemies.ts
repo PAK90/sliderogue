@@ -16,8 +16,8 @@ export const isEnemy = (e: Player | Enemy): e is Enemy => e.kind === "enemy";
 
 export const GolbinEnemy = {
   position: 0,
-  maxHealth: 15,
-  currentHealth: 15,
+  maxHealth: 12,
+  currentHealth: 12,
   abilities: [basicDealDamageAbility],
   passiveAbilities: [],
   name: "Golbin",
@@ -28,8 +28,8 @@ export const GolbinEnemy = {
 
 export const ShielderEnemy = {
   position: 0,
-  maxHealth: 20,
-  currentHealth: 20,
+  maxHealth: 15,
+  currentHealth: 15,
   abilities: [],
   passiveAbilities: [ShielderPassive(3)],
   name: "Shielder",
@@ -38,6 +38,19 @@ export const ShielderEnemy = {
   kind: "enemy",
 };
 
-export function createEnemy(enemy: Enemy, position: number, suffix?: string) {
-  return { ...enemy, id: uniqueId(), position, name: enemy.name + suffix };
+export function createEnemy(
+  enemy: Enemy,
+  position: number,
+  suffix?: string,
+  // powerMultiplier = 1,
+  healthMultiplier = 1,
+) {
+  return {
+    ...enemy,
+    id: uniqueId(),
+    position,
+    name: enemy.name + suffix,
+    maxHealth: Math.floor(enemy.maxHealth * healthMultiplier),
+    currentHealth: Math.floor(enemy.currentHealth * healthMultiplier),
+  };
 }

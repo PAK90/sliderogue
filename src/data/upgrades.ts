@@ -38,7 +38,7 @@ const widthUpgrade: Upgrade = {
     return state;
   },
   type: "BOARD",
-  cost: 15,
+  cost: 55,
   tier: 2,
   weight: 100,
   costMultiplier: 10,
@@ -54,7 +54,7 @@ const heightUpgrade: Upgrade = {
     return state;
   },
   type: "BOARD",
-  cost: 15,
+  cost: 55,
   tier: 2,
   weight: 100,
   costMultiplier: 10,

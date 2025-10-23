@@ -1,5 +1,6 @@
 import { useGameStore } from "../state";
 import { Option } from "../helpers/chooseWeightedOption.ts";
+import { upgradeColourMap } from "../data/constants.ts";
 
 const DeckViewDialog = () => {
   const {
@@ -29,11 +30,6 @@ const DeckViewDialog = () => {
 
   const tileRender = (t: Option, ix: number) => {
     const value = t.value || 2;
-    const upgradeColourMap = {
-      GOLD: "#e3b006",
-      SILVER: "#e1e8f1",
-      EXPLOSIVE: "#a80000",
-    };
     const shadowString = (
       t.upgrades?.map(
         (upgrade, uIx) =>

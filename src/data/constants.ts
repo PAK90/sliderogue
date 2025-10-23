@@ -24,6 +24,7 @@ export const upgradeColourMap = {
   GOLD: "#e3b006",
   SILVER: "#e1e8f1",
   EXPLOSIVE: "#a80000",
+  DIAMOND: "#53d2f8",
 };
 
 export const BASE_MANA_COST = 5;

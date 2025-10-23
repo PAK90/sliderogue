@@ -479,6 +479,7 @@ export const useGameStore = create<GameState & Actions>()(
                 [0],
                 state,
                 activeSpell.complete as Tile[],
+                activeSpell.spell,
               );
             }
             // reset the spell
@@ -627,7 +628,12 @@ export const useGameStore = create<GameState & Actions>()(
                 draggedTiles: sat,
               });
             } else {
-              state = activeSpells[satIx].spell.stateUpdater([0], state, sat);
+              state = activeSpells[satIx].spell.stateUpdater(
+                [0],
+                state,
+                sat,
+                activeSpells[satIx].spell,
+              );
             }
           }
         });
@@ -674,7 +680,7 @@ export const useGameStore = create<GameState & Actions>()(
         // it should always be the 0th since we concat them on, and will slice this one off after.
         const targets = state.chosenTargets;
         const { spell, draggedTiles } = state.spellsToTarget[0];
-        state = spell.stateUpdater(targets, state, draggedTiles);
+        state = spell.stateUpdater(targets, state, draggedTiles, spell);
         state.spellsToTarget.splice(0, 1);
         state.chosenTargets = []; // reset the targeting.
         if (state.spellsToTarget.length === 0) {

@@ -25,6 +25,8 @@ export type Spell = {
     tileName: string;
     tileValue: number | string;
   }[];
+  criticalChance: number;
+  criticalMultiplier: number;
   manaCost: number;
   targets: "PLAYER" | "ENEMY" | "ENEMIES" | "ALL";
   targetQuantity: number;
@@ -32,8 +34,25 @@ export type Spell = {
     targets: number[], // indices of enemies, since if it's player we don't need, and ALL is all.
     state: WritableDraft<GameState & Actions>, // FIXME yes I know Actions have no place here but it makes state easier.
     satisfiedDraggedTiles: Tile[],
+    spell: Spell, // for context like crit multi/chance
   ) => WritableDraft<GameState & Actions>;
   // spawns: Option[];
+};
+
+const rollForCrit = (
+  spell: Spell,
+  draggedValue: number,
+  incCritChance = 1,
+  incCritMulti = 1,
+) => {
+  const { criticalChance, criticalMultiplier } = spell;
+  if (criticalChance > 0) {
+    const roll = Math.random();
+    if (roll < criticalChance * incCritChance) {
+      return draggedValue * criticalMultiplier * incCritMulti;
+    }
+  }
+  return draggedValue;
 };
 
 const fireballSpell: Spell = {
@@ -43,24 +62,34 @@ const fireballSpell: Spell = {
     { tileName: fireTile.name, tileValue: "x" },
     { tileName: fireTile.name, tileValue: "2x" },
   ],
-  // spawns: [fireTile],
+  criticalChance: 0.1,
+  criticalMultiplier: 2,
   targets: "ENEMY",
   manaCost: 25,
   targetQuantity: -1, // first target, but can't be chosen, so -1
   stateUpdater: (
     _,
     state: WritableDraft<GameState & Actions>,
-    draggedTiles,
+    tiles,
+    spell,
   ) => {
     const targets = Object.values(state.entities)
       .filter(isEnemy)
       .sort((a, b) => a.position - b.position);
-    const draggedValue = draggedTiles.reduce(
-      (total, dTile) => (total += dTile.value),
-      0,
+    const tileValue = tiles.reduce(
+      (total, dTile) => {
+        total.total += dTile.value;
+        total.critChance += dTile.upgrades.includes("DIAMOND") ? 0.4 : 0;
+        return total;
+      },
+      { total: 0, critChance: 1 },
     );
-    console.log("dragged value: ", draggedValue);
-    dealDamageInternal(state, targets[0].id, draggedValue);
+    console.log("dragged value: ", tileValue);
+    dealDamageInternal(
+      state,
+      targets[0].id,
+      rollForCrit(spell, tileValue.total, tileValue.critChance),
+    );
     return state;
   },
 };
@@ -74,18 +103,36 @@ const enflameSpell: Spell = {
   ],
   // spawns: [fireTile],
   targets: "ENEMIES",
+  criticalChance: 0.1,
+  criticalMultiplier: 2,
   manaCost: 15,
   targetQuantity: -1, // doesn't matter, all enemies.
-  stateUpdater: (_, state: WritableDraft<GameState & Actions>, tiles) => {
+  stateUpdater: (
+    _,
+    state: WritableDraft<GameState & Actions>,
+    tiles,
+    spell,
+  ) => {
     const targets = Object.values(state.entities).filter(isEnemy);
-    const tileValue = tiles.reduce((total, dTile) => (total += dTile.value), 0);
+    const tileValue = tiles.reduce(
+      (total, dTile) => {
+        total.total += dTile.value;
+        total.critChance += dTile.upgrades.includes("DIAMOND") ? 0.4 : 0;
+        return total;
+      },
+      { total: 0, critChance: 1 },
+    );
     targets.forEach((target) => {
       addEffectInternal(
         state,
         target.id,
         "Burn",
         {
-          amount: Math.floor(tileValue / 4),
+          amount: rollForCrit(
+            spell,
+            Math.floor(tileValue.total / 4),
+            tileValue.critChance,
+          ),
         },
         { durationSlides: 3 },
       );
@@ -103,13 +150,30 @@ const earthBlockSpell: Spell = {
   ],
   // spawns: [fireTile],
   targets: "PLAYER",
+  criticalChance: 0.1,
+  criticalMultiplier: 2,
   manaCost: 15,
   targetQuantity: -1,
-  stateUpdater: (_, state: WritableDraft<GameState & Actions>, tiles) => {
-    // const { addEffect } = state;
-    const tileValue = tiles.reduce((total, dTile) => (total += dTile.value), 0);
+  stateUpdater: (
+    _,
+    state: WritableDraft<GameState & Actions>,
+    tiles,
+    spell,
+  ) => {
+    const tileValue = tiles.reduce(
+      (total, dTile) => {
+        total.total += dTile.value;
+        total.critChance += dTile.upgrades.includes("DIAMOND") ? 0.4 : 0;
+        return total;
+      },
+      { total: 0, critChance: 1 },
+    );
     addEffectInternal(state, "PLAYER", "Block", {
-      amount: Math.floor(tileValue / 2),
+      amount: rollForCrit(
+        spell,
+        Math.floor(tileValue.total / 2),
+        tileValue.critChance,
+      ),
     });
     return state;
   },
@@ -123,26 +187,36 @@ const earthquakeSpell: Spell = {
     { tileName: earthTile.name, tileValue: "2x" },
   ],
   targets: "ENEMIES",
+  criticalChance: 0.1,
+  criticalMultiplier: 2,
   manaCost: 20,
   targetQuantity: -1, // all targets.
   stateUpdater: (
     _,
     state: WritableDraft<GameState & Actions>,
-    draggedTiles,
+    tiles,
+    spell,
   ) => {
     const targets = Object.values(state.entities).filter(isEnemy);
-    const draggedValue = draggedTiles.reduce(
-      (total, dTile) => (total += dTile.value),
-      0,
+    const tileValue = tiles.reduce(
+      (total, dTile) => {
+        total.total += dTile.value;
+        total.critChance += dTile.upgrades.includes("DIAMOND") ? 0.4 : 0;
+        return total;
+      },
+      { total: 0, critChance: 1 },
     );
     const blockValue = sumEffectValue(state, "PLAYER", "Block");
-    console.log("dragged value, block value: ", draggedValue, blockValue);
+    console.log("dragged value, block value: ", tileValue, blockValue);
     targets.forEach((target) => {
-      // TODO: get block value on player from effects.
       dealDamageInternal(
         state,
         target.id,
-        Math.floor(draggedValue / 4) + blockValue,
+        rollForCrit(
+          spell,
+          Math.floor(tileValue.total / 4) + blockValue,
+          tileValue.critChance,
+        ),
       );
     });
     return state;
@@ -181,22 +255,33 @@ const waterDamageSpell: Spell = {
   ],
   // spawns: [waterTile],
   targets: "ENEMY",
+  criticalChance: 0.1,
+  criticalMultiplier: 2,
   manaCost: 18,
   targetQuantity: -1, // first target, but can't be chosen, so -1
   stateUpdater: (
     _,
     state: WritableDraft<GameState & Actions>,
-    draggedTiles,
+    tiles,
+    spell,
   ) => {
     const targets = Object.values(state.entities)
       .filter(isEnemy)
       .sort((a, b) => a.position - b.position);
-    const draggedValue = draggedTiles.reduce(
-      (total, dTile) => (total += dTile.value),
-      0,
+    const tileValue = tiles.reduce(
+      (total, dTile) => {
+        total.total += dTile.value;
+        total.critChance += dTile.upgrades.includes("DIAMOND") ? 0.4 : 0;
+        return total;
+      },
+      { total: 0, critChance: 1 },
     );
-    console.log("dragged value: ", draggedValue);
-    dealDamageInternal(state, targets[0].id, draggedValue - 4);
+    console.log("dragged value: ", tileValue);
+    dealDamageInternal(
+      state,
+      targets[0].id,
+      rollForCrit(spell, tileValue.total - 4, tileValue.critChance),
+    );
     return state;
   },
 };
@@ -210,16 +295,23 @@ const waterFreezeSpell: Spell = {
   ],
   // spawns: [waterTile],
   targets: "ENEMIES",
+  criticalChance: 0.1,
+  criticalMultiplier: 2,
   manaCost: 14,
   targetQuantity: -1,
   stateUpdater: (
     _,
     state: WritableDraft<GameState & Actions>,
-    draggedTiles,
+    tiles,
+    spell,
   ) => {
-    const draggedValue = draggedTiles.reduce(
-      (total, dTile) => (total += dTile.value),
-      0,
+    const tileValue = tiles.reduce(
+      (total, dTile) => {
+        total.total += dTile.value;
+        total.critChance += dTile.upgrades.includes("DIAMOND") ? 0.4 : 0;
+        return total;
+      },
+      { total: 0, critChance: 1 },
     );
     const targets = Object.values(state.entities).filter(isEnemy);
     targets.forEach((target) => {
@@ -229,7 +321,11 @@ const waterFreezeSpell: Spell = {
         "Freeze",
         {},
         {
-          durationSlides: Math.floor(draggedValue / 4),
+          durationSlides: rollForCrit(
+            spell,
+            Math.floor(tileValue.total / 4),
+            tileValue.critChance,
+          ),
         },
       );
     });
@@ -246,22 +342,33 @@ const airSwapSpell: Spell = {
     { tileName: airTile.name, tileValue: "x" },
   ],
   targets: "ENEMY",
+  criticalChance: 0.1,
+  criticalMultiplier: 2,
   manaCost: 18,
   targetQuantity: -1, // first target, but can't be chosen, so -1
   stateUpdater: (
     _,
     state: WritableDraft<GameState & Actions>,
-    draggedTiles,
+    tiles,
+    spell,
   ) => {
     const targets = Object.values(state.entities)
       .filter(isEnemy)
       .sort((a, b) => a.position - b.position);
-    const draggedValue = draggedTiles.reduce(
-      (total, dTile) => (total += dTile.value),
-      0,
+    const tileValue = tiles.reduce(
+      (total, dTile) => {
+        total.total += dTile.value;
+        total.critChance += dTile.upgrades.includes("DIAMOND") ? 0.4 : 0;
+        return total;
+      },
+      { total: 0, critChance: 1 },
     );
     console.log("targets ", targets);
-    dealDamageInternal(state, targets[0].id, Math.floor(draggedValue / 3));
+    dealDamageInternal(
+      state,
+      targets[0].id,
+      rollForCrit(spell, Math.floor(tileValue.total / 3), tileValue.critChance),
+    );
     if (targets.length > 1) {
       const frontEnemy = targets[0];
       const lastEnemy = targets[targets.length - 1];
@@ -279,13 +386,31 @@ const airDamageSpell: Spell = {
     { tileName: airTile.name, tileValue: "2x" },
   ],
   targets: "ENEMIES",
+  criticalChance: 0.1,
+  criticalMultiplier: 2,
   manaCost: 15,
   targetQuantity: -1, // doesn't matter, all enemies.
-  stateUpdater: (_, state: WritableDraft<GameState & Actions>, tiles) => {
+  stateUpdater: (
+    _,
+    state: WritableDraft<GameState & Actions>,
+    tiles,
+    spell,
+  ) => {
     const targets = Object.values(state.entities).filter(isEnemy);
-    const tileValue = tiles.reduce((total, dTile) => (total += dTile.value), 0);
+    const tileValue = tiles.reduce(
+      (total, dTile) => {
+        total.total += dTile.value;
+        total.critChance += dTile.upgrades.includes("DIAMOND") ? 0.4 : 0;
+        return total;
+      },
+      { total: 0, critChance: 1 },
+    );
     targets.forEach((target) => {
-      dealDamageInternal(state, target.id, tileValue / 2);
+      dealDamageInternal(
+        state,
+        target.id,
+        rollForCrit(spell, tileValue.total / 2, tileValue.critChance),
+      );
     });
     return state;
   },

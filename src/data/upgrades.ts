@@ -6,13 +6,14 @@ import { Actions, GameState } from "../state";
 // import { tile8 } from "./tiles.ts";
 
 export type UpgradeType = "BOARD" | "TILE";
-export type TileUpgrades = "SILVER";
+export type TileUpgrades = "SILVER" | "DIAMOND";
 export enum TileUpgradesDominance {
   RECESSIVE = "RECESSIVE",
   DOMINANT = "DOMINANT",
 }
 export const UpgradeDominance: Record<TileUpgrades, TileUpgradesDominance> = {
   SILVER: TileUpgradesDominance.RECESSIVE,
+  DIAMOND: TileUpgradesDominance.DOMINANT,
 };
 
 export type Upgrade = {
@@ -77,6 +78,34 @@ const silverUpgrade: Upgrade = {
         potentialUpgrades.push("SILVER");
       } else {
         player.baseTileBag[tileIx].upgrades = ["SILVER"];
+      }
+    });
+    return state;
+  },
+  type: "TILE",
+  cost: 5,
+  tier: 2,
+  weight: 100,
+  costMultiplier: 2,
+  minTiles: 1,
+  maxTiles: 2,
+};
+
+const diamondUpgrade: Upgrade = {
+  name: "Diamond Edges",
+  description: `{DOMINANT} (When merged with a non-Diamond tile, it will be Diamond.)
+    Upgrades up to two tiles to be Diamond.\n
+    Diamond tiles each grant a spell 40% increased critical chance..`,
+  stateUpdater: (state: WritableDraft<GameState & Actions>) => {
+    const board = state.boards[0];
+    const { selectedDeckTiles } = board;
+    const { player } = state;
+    selectedDeckTiles.forEach((tileIx) => {
+      const potentialUpgrades = player.baseTileBag[tileIx].upgrades;
+      if (potentialUpgrades) {
+        potentialUpgrades.push("DIAMOND");
+      } else {
+        player.baseTileBag[tileIx].upgrades = ["DIAMOND"];
       }
     });
     return state;
@@ -269,6 +298,7 @@ export const upgrades = [
   // upgradeShopTile,
   // shuffle,
   silverUpgrade,
+  diamondUpgrade,
   rankUpgrade,
   // goldUpgrade,
   // explosiveUpgrade,
